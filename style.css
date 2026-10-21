@@ -118,6 +118,9 @@ button { font: inherit; }
   grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
+/* 주(줄) 사이는 넉넉히, 클로버와 날짜는 붙어 있게 */
+.cal-grid { row-gap: 6px; }
+
 .cal-weekdays span {
   padding: 4px 0 8px;
   font-size: 12px;
@@ -133,8 +136,8 @@ button { font: inherit; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 0 4px;
+  gap: 0;
+  padding: 5px 0 3px;
   color: var(--text);
   background: transparent;
   border: none;
@@ -148,8 +151,8 @@ button { font: inherit; }
 .cal-num {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   font-size: 13px;
   border-radius: 50%;
   transition: background 0.15s, color 0.15s;

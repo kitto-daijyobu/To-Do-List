@@ -344,7 +344,6 @@ function postponeUndone() {
   const nextDay = toDateKey(addDays(selectedDate, 1));
   for (const t of undone) moveTodo(t, nextDay);
   render();
-  showToast(`미완료 ${undone.length}개를 ${formatDateKey(nextDay)}로 옮겼어요`);
 }
 
 // ===== 여러 개 선택 =====
@@ -413,7 +412,6 @@ function runBulk(kind) {
     chosen.forEach(archiveTodo);
     stopSelecting();
     render();
-    showToast(`${chosen.length}개를 보관함에 넣었어요`);
   } else if (kind === 'delete') {
     const undo = deleteTodos(chosen.map((t) => t.id));
     stopSelecting();
@@ -573,16 +571,18 @@ function renderCalendar() {
     if (key === todayKey) cell.classList.add('today');
     if (key === selectedKey) cell.classList.add('selected');
 
+    // 클로버는 모든 날에 나와요. 할 일이 없는 날은 빈 회색 클로버
     const clover = document.createElement('span');
     clover.className = 'clover';
-    if (total) {
-      const leafColors = cloverLeafColors(dayTodos);
-      if (!leafColors) clover.classList.add('empty');
-      const inner = done === total
-        ? `<svg class="clover-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${CHECK_PATH}"/></svg>`
-        : `<span class="clover-count">${total - done}</span>`;
-      clover.innerHTML = cloverSvg(leafColors) + inner;
+    const leafColors = total ? cloverLeafColors(dayTodos) : null;
+    if (!leafColors) clover.classList.add('empty');
+    let inner = '';
+    if (total && done === total) {
+      inner = `<svg class="clover-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${CHECK_PATH}"/></svg>`;
+    } else if (total) {
+      inner = `<span class="clover-count">${total - done}</span>`;
     }
+    clover.innerHTML = cloverSvg(leafColors) + inner;
 
     const num = document.createElement('span');
     num.className = 'cal-num';
@@ -990,7 +990,8 @@ function finishAction(message, action = null) {
   if (selecting) stopSelecting();
   render();
   if ($archiveDialog.open) renderArchive();
-  if (message) showToast(message, action);
+  // 알림은 '되돌리기'가 있는 경우(삭제)에만 띄워요. 나머지는 조용히 바로 실행
+  if (message && action) showToast(message, action);
 }
 
 // 메뉴 아이콘 (동그라미 안에 들어가요)
