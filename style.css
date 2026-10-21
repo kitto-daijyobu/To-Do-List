@@ -390,6 +390,22 @@ button.check:hover { border-color: var(--cat); }
   transition: color 0.15s;
 }
 
+.todo-title { cursor: text; }
+
+/* 이름 고치는 중 */
+.todo-edit {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--cat);
+  border-radius: 0;
+  outline: none;
+}
+
 .todo-item.done .todo-title {
   color: var(--text-muted);
   text-decoration: line-through;

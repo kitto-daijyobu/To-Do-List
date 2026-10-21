@@ -27,15 +27,27 @@ function loadJSON(key, fallback) {
 // ===== 카테고리 색 =====
 // 카테고리 색은 이 목록에서 골라요
 const PALETTE = [
-  '#5B8DEF', // 파랑
-  '#3D5FC4', // 남색
+  // 파란 계열
+  '#A9C8F5', // 연파랑
   '#6CBDE0', // 하늘
+  '#5AA9C9', // 바다
+  '#7FA7D9', // 안개파랑
+  '#5B8DEF', // 파랑
+  '#4A7BD0', // 코발트
+  '#3D5FC4', // 남색
+  '#2F4A9E', // 진남색
+  // 그 밖의 색
   '#4DB6A0', // 청록
+  '#7DD3C0', // 민트
   '#7FB069', // 초록
+  '#A8C66C', // 연두
   '#8E7CE0', // 보라
+  '#B4A7EC', // 라벤더
   '#E88AA8', // 분홍
+  '#EE8C7A', // 코랄
   '#F0A96B', // 살구
   '#E5C15A', // 노랑
+  '#B08B6E', // 갈색
   '#9AA5B4', // 회색
 ];
 const UNCATEGORIZED_COLOR = '#9AA5B4';
@@ -168,7 +180,7 @@ let pointerIsDown = false;
 let renderPending = false;
 
 function scheduleRender() {
-  const typing = document.activeElement?.matches?.('.add-input, .cat-name');
+  const typing = document.activeElement?.matches?.('.add-input, .cat-name, .todo-edit');
   if (pointerIsDown || typing) {
     renderPending = true;
     return;
@@ -542,6 +554,8 @@ function renderItem(todo) {
   const title = document.createElement('span');
   title.className = 'todo-title';
   title.textContent = todo.title;
+  title.title = '눌러서 이름 고치기';
+  title.addEventListener('click', () => startEditTitle(title, todo));
 
   const del = document.createElement('button');
   del.className = 'delete';
@@ -552,6 +566,42 @@ function renderItem(todo) {
 
   li.append(check, title, del);
   return li;
+}
+
+// 할 일 이름을 누르면 그 자리에서 고칠 수 있어요
+// 엔터나 바깥을 누르면 저장, Esc는 취소, 다 지우면 원래 이름으로 돌아가요
+function startEditTitle(span, todo) {
+  const input = document.createElement('input');
+  input.className = 'todo-edit';
+  input.type = 'text';
+  input.maxLength = 200;
+  input.value = todo.title;
+  input.setAttribute('aria-label', '할 일 이름 고치기');
+
+  let finished = false;
+  const finish = (keep) => {
+    if (finished) return;
+    finished = true;
+    const value = input.value.trim();
+    if (keep && value && value !== todo.title) {
+      todo.title = value;
+      save(remote.updateTodo(todo.id, { title: value }));
+    }
+    span.textContent = todo.title;
+    if (input.isConnected) input.replaceWith(span);
+    scheduleRender();
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.isComposing) return;
+    if (e.key === 'Enter') finish(true);
+    else if (e.key === 'Escape') finish(false);
+  });
+  input.addEventListener('blur', () => finish(true));
+
+  span.replaceWith(input);
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
 }
 
 // ===== 카테고리 관리 창 =====
