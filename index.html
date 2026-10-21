@@ -66,7 +66,13 @@
           <div class="day-actions">
             <button id="start-select" class="text-button" type="button">선택</button>
             <button id="open-archive" class="text-button" type="button">보관함</button>
-            <button id="open-cats" class="text-button" type="button">카테고리 관리</button>
+            <button id="open-menu" class="menu-button" type="button" aria-label="메뉴" aria-haspopup="menu" aria-expanded="false" aria-controls="home-menu">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12"/></svg>
+            </button>
+            <div id="home-menu" class="menu-popover" role="menu" hidden>
+              <button id="open-cats" class="menu-item" type="button" role="menuitem">카테고리 관리</button>
+              <button class="menu-item" type="button" role="menuitem" data-soon="루틴 관리">루틴 관리<span class="soon-badge">준비 중</span></button>
+            </div>
           </div>
         </div>
         <h1 id="day-title" class="day-title"></h1>
@@ -74,10 +80,10 @@
           <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
           <span id="progress-text" class="progress-text"></span>
         </div>
-        <button id="postpone-undone" class="postpone-button" type="button" hidden></button>
       </header>
 
       <div id="sections" class="sections"></div>
+      <button id="postpone-undone" class="postpone-link" type="button" hidden></button>
       <p id="empty-message" class="empty-message">카테고리 이름을 눌러 할 일을 추가해 보세요.</p>
     </section>
   </main>

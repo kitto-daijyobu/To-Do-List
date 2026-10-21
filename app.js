@@ -352,6 +352,7 @@ let selecting = false;
 const selectedIds = new Set();
 
 function startSelecting() {
+  setMenuOpen(false);
   selecting = true;
   selectedIds.clear();
   addingCategoryId = null;
@@ -642,13 +643,14 @@ function renderProgress() {
 
   const undone = total - doneCount;
   $postpone.hidden = !undone || selecting;
-  $postpone.textContent = `미완료 ${undone}개 내일 하기`;
+  $postpone.textContent = `미완료 ${undone}개 내일 하기 →`;
 }
 
 function renderSection(cat, items, canAdd) {
   const section = document.createElement('section');
   section.className = 'cat-section';
   section.style.setProperty('--cat', safeColor(cat.color));
+  if (cat.id) section.dataset.catId = cat.id; // 끌어서 옮길 때 어느 카테고리인지 알려고
 
   const head = document.createElement(canAdd ? 'button' : 'div');
   head.className = 'cat-head';
@@ -752,8 +754,146 @@ function renderItem(todo) {
   more.addEventListener('click', () => openTodoSheet(todo.id));
 
   li.append(check, title, more);
+  li.dataset.id = todo.id;
+  li.addEventListener('pointerdown', (e) => pressTodo(e, li));
   return li;
 }
+
+// ===== 할 일 끌어서 옮기기 =====
+// 컴퓨터: 누른 채 조금 움직이면 시작 / 휴대폰: 꾹 누르고(0.35초) 있다가 끌기
+// 다른 카테고리 위에 놓으면 그 카테고리로 바뀌어요
+let todoDrag = null;
+let suppressClick = false;
+
+function pressTodo(e, li) {
+  if (!e.isPrimary || e.button > 0 || e.target.closest('input')) return;
+  const start = { x: e.clientX, y: e.clientY };
+  const touch = e.pointerType !== 'mouse';
+  let timer = null;
+
+  const cleanup = () => {
+    clearTimeout(timer);
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', cleanup);
+    document.removeEventListener('pointercancel', cleanup);
+  };
+
+  const onMove = (ev) => {
+    const moved = Math.hypot(ev.clientX - start.x, ev.clientY - start.y);
+    if (touch) {
+      if (moved > 8) cleanup(); // 꾹 누르기 전에 움직이면 그냥 스크롤
+    } else if (moved > 6) {
+      cleanup();
+      beginTodoDrag(li, ev.clientY);
+    }
+  };
+
+  if (touch) {
+    timer = setTimeout(() => {
+      cleanup();
+      if (navigator.vibrate) navigator.vibrate(10);
+      beginTodoDrag(li, start.y);
+    }, 350);
+  }
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', cleanup);
+  document.addEventListener('pointercancel', cleanup);
+}
+
+function beginTodoDrag(li, y) {
+  todoDrag = { li };
+  li.classList.add('dragging');
+  document.body.classList.add('dragging-todo', 'is-dragging');
+  placeDraggedTodo(y);
+  document.addEventListener('pointermove', onTodoDragMove);
+  document.addEventListener('pointerup', endTodoDrag);
+  document.addEventListener('pointercancel', endTodoDrag);
+}
+
+// 손가락/마우스 높이(y)에 맞춰 끌고 있는 줄을 그 자리로 옮겨요
+function placeDraggedTodo(y) {
+  const { li } = todoDrag;
+  const sections = [...$sections.querySelectorAll('.cat-section[data-cat-id]')];
+  if (!sections.length) return;
+  let target = sections[0];
+  for (const s of sections) if (s.getBoundingClientRect().top <= y) target = s;
+
+  // 끌고 있는 줄의 색을 놓일 카테고리 색으로 미리 보여 줘요
+  li.style.setProperty('--cat', target.style.getPropertyValue('--cat'));
+
+  const list = target.querySelector('.todo-list');
+  const others = [...list.children].filter((x) => x !== li && x.classList.contains('todo-item'));
+  const before = others.find((x) => {
+    const box = x.getBoundingClientRect();
+    return y < box.top + box.height / 2;
+  });
+  if (before) {
+    if (li.nextElementSibling !== before) list.insertBefore(li, before);
+  } else if (list.lastElementChild !== li) {
+    list.append(li);
+  }
+}
+
+function onTodoDragMove(e) {
+  if (!todoDrag) return;
+  e.preventDefault();
+  placeDraggedTodo(e.clientY);
+  // 화면 위·아래 끝으로 끌면 저절로 스크롤
+  if (e.clientY < 70) window.scrollBy(0, -14);
+  else if (e.clientY > window.innerHeight - 90) window.scrollBy(0, 14);
+}
+
+function endTodoDrag() {
+  if (!todoDrag) return;
+  const { li } = todoDrag;
+  todoDrag = null;
+  document.removeEventListener('pointermove', onTodoDragMove);
+  document.removeEventListener('pointerup', endTodoDrag);
+  document.removeEventListener('pointercancel', endTodoDrag);
+  li.classList.remove('dragging');
+  li.style.removeProperty('--cat');
+  document.body.classList.remove('dragging-todo', 'is-dragging');
+
+  // 끌기가 끝난 직후의 '클릭'(체크·이름 고치기)은 무시해요
+  suppressClick = true;
+  setTimeout(() => { suppressClick = false; }, 0);
+
+  // 화면에 놓인 순서 그대로 순서 번호와 카테고리를 저장해요
+  let order = 0;
+  for (const section of $sections.querySelectorAll('.cat-section')) {
+    const catId = section.dataset.catId;
+    for (const item of section.querySelectorAll('.todo-item[data-id]')) {
+      const todo = todos.find((t) => t.id === item.dataset.id);
+      if (!todo) continue;
+      const fields = {};
+      if (todo.order !== order) fields.order = order;
+      if (catId && item === li && todo.categoryId !== catId) fields.categoryId = catId;
+      if (Object.keys(fields).length) {
+        Object.assign(todo, fields);
+        save(remote.updateTodo(todo.id, fields));
+      }
+      order++;
+    }
+  }
+  render();
+}
+
+// 터치로 끄는 동안에는 화면이 스크롤되지 않게
+document.addEventListener('touchmove', (e) => {
+  if (todoDrag) e.preventDefault();
+}, { passive: false });
+
+// 휴대폰에서 꾹 누를 때 뜨는 복사/공유 메뉴 막기
+$sections.addEventListener('contextmenu', (e) => {
+  if (e.target.closest('.todo-item')) e.preventDefault();
+});
+
+document.addEventListener('click', (e) => {
+  if (suppressClick) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+}, true);
 
 // 선택하는 중: 줄 어디를 눌러도 골라지고/풀려요
 function renderSelectableItem(todo) {
@@ -1193,6 +1333,29 @@ $toastAction.addEventListener('click', () => {
   const action = toastAction;
   hideToast();
   if (action) action.run();
+});
+
+// 홈 상단 ☰ 메뉴 (카테고리 관리, 루틴 관리)
+const $menuButton = document.getElementById('open-menu');
+const $homeMenu = document.getElementById('home-menu');
+
+function setMenuOpen(open) {
+  $homeMenu.hidden = !open;
+  $menuButton.setAttribute('aria-expanded', String(open));
+}
+
+$menuButton.addEventListener('click', () => setMenuOpen($homeMenu.hidden));
+$homeMenu.addEventListener('click', (e) => {
+  if (e.target.closest('.menu-item')) setMenuOpen(false);
+});
+document.addEventListener('click', (e) => {
+  if (!$homeMenu.hidden && !e.target.closest('#home-menu, #open-menu')) setMenuOpen(false);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$homeMenu.hidden) {
+    setMenuOpen(false);
+    $menuButton.focus();
+  }
 });
 
 // 미완료 내일 하기, 여러 개 선택

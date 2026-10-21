@@ -918,21 +918,109 @@ body[data-screen="login"] .login-screen {
   transform: translate(-50%, 0);
 }
 
-/* ===== 미완료 내일 하기 ===== */
-.postpone-button {
-  margin-top: 12px;
-  padding: 6px 12px;
+/* ===== 미완료 내일 하기 (목록 맨 아래 작은 글씨) ===== */
+.postpone-link {
+  display: block;
+  margin: 18px 0 0 auto;
+  padding: 6px 8px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--primary);
-  background: var(--primary-soft);
+  color: var(--text-muted);
+  background: transparent;
   border: none;
-  border-radius: 999px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 
-.postpone-button:hover { background: #d6e3f3; }
+.postpone-link:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.postpone-link[hidden] { display: none; }
+
+/* ===== 홈 상단 ☰ 메뉴 ===== */
+.day-actions { position: relative; }
+
+.menu-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.menu-button svg { width: 17px; height: 17px; }
+
+.menu-button:hover,
+.menu-button[aria-expanded="true"] {
+  color: var(--primary);
+  border-color: #c8d6e8;
+  background: var(--surface);
+}
+
+.menu-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 4;
+  min-width: 180px;
+  padding: 6px;
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(31, 42, 55, 0.15);
+}
+
+.menu-popover[hidden] { display: none; }
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  font-size: 15px;
+  color: var(--text);
+  text-align: left;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.menu-item:hover { background: var(--bg); }
+
+/* ===== 할 일 끌어서 옮기기 ===== */
+.todo-item {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.todo-item.dragging {
+  position: relative;
+  z-index: 2;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(31, 42, 55, 0.16);
+}
+
+.todo-item.dragging .check { border-color: var(--cat); }
+
+/* 끄는 동안엔 비어 있는 카테고리에도 놓을 자리가 보여요 */
+body.dragging-todo .todo-list:empty {
+  display: block;
+  min-height: 40px;
+  border: 1.5px dashed color-mix(in srgb, var(--cat) 45%, transparent);
+  border-radius: 10px;
+}
 
 /* ===== 여러 개 선택 ===== */
 .todo-item.selectable {
