@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    // 내가 이 사람을 팔로우하고, 그 사람이 수락했는지
+    function follows(owner) {
+      let path = /databases/$(database)/documents/follows/$(request.auth.uid + '_' + owner);
+      return signedIn() && exists(path) && get(path).data.status == 'accepted';
+    }
+
+    // 공개 프로필: 로그인한 사람 누구나 읽기(친구 코드 찾기), 본인만 쓰기
+    match /profiles/{uid} {
+      allow read: if signedIn();
+      allow write: if isMe(uid);
+    }
+
+    // 팔로우: 요청은 보내는 사람이, 수락은 받는 사람이, 끊기는 둘 다
+    match /follows/{id} {
+      allow read: if signedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && id == request.auth.uid + '_' + request.resource.data.to;
+      allow update: if signedIn()
+        && resource.data.to == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt'])
+        && request.resource.data.status == 'accepted';
+      allow delete: if signedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+    }
+
+    match /users/{uid} {
+      // 내 데이터는 나만 전부 읽고 쓰기
+      match /{document=**} {
+        allow read, write: if isMe(uid);
+      }
+      // 친구는 공개된(shared) 할 일·루틴과 숨기지 않은 카테고리만 읽기
+      match /todos/{id} {
+        allow read: if follows(uid) && resource.data.shared == true;
+      }
+      match /routines/{id} {
+        allow read: if follows(uid) && resource.data.shared == true;
+      }
+      match /categories/{id} {
+        allow read: if follows(uid) && resource.data.hidden == false;
+      }
+      // 이모지·댓글: 친구가 남기고, 남긴 사람이 지우기
+      match /reactions/{id} {
+        allow read: if follows(uid);
+        allow create: if follows(uid) && request.resource.data.from == request.auth.uid;
+        allow delete: if signedIn() && resource.data.from == request.auth.uid;
+      }
+    }
+  }
+}
