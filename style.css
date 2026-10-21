@@ -866,6 +866,170 @@ button.todo-title {
 
 .primary-button:hover { background: var(--primary-hover); }
 
+/* ===== 루틴 ===== */
+.routine-mark {
+  display: inline-grid;
+  vertical-align: -2px;
+  margin-left: 6px;
+  color: var(--cat);
+  opacity: 0.8;
+}
+
+.routine-mark svg { width: 14px; height: 14px; }
+
+.routine-sheet { max-height: calc(100% - 32px); overflow-y: auto; }
+
+.routine-form { display: grid; gap: 10px; }
+
+.field-label {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cat-chip.on {
+  color: color-mix(in srgb, var(--cat) 70%, #1f2a37);
+  background: color-mix(in srgb, var(--cat) 14%, #fff);
+  border-color: var(--cat);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 3px;
+  background: var(--bg);
+  border-radius: 12px;
+}
+
+.seg {
+  padding: 9px 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.seg.on {
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(31, 42, 55, 0.08);
+}
+
+.repeat-detail:empty { display: none; }
+
+.day-chip {
+  min-width: 38px;
+  height: 38px;
+  padding: 0;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.day-chip.on { font-weight: 700; color: #fff; background: var(--primary); }
+
+/* 요일 7개는 화면이 좁아도 항상 한 줄 */
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  justify-items: center;
+}
+
+.weekdays .day-chip {
+  width: 100%;
+  max-width: 40px;
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.seg { white-space: nowrap; font-size: 13px; }
+
+.month-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  justify-items: center;
+}
+
+.month-days .day-chip { min-width: 34px; height: 34px; font-size: 13px; }
+
+.every-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.every-input {
+  width: 72px;
+  padding: 9px 10px;
+  font: inherit;
+  text-align: center;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.date-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.date-row-value { font-weight: 600; color: var(--primary); }
+.no-end { justify-self: end; }
+
+.form-error {
+  margin: 0;
+  min-height: 0;
+  font-size: 14px;
+  color: var(--danger);
+}
+
+.form-error:empty { display: none; }
+.danger-text { margin-right: auto; color: var(--danger); }
+
+.routine-name { display: block; }
+
+.routine-rule {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* ===== 보관함 ===== */
 .sheet-hint {
   margin: -4px 0 12px;

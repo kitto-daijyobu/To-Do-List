@@ -73,7 +73,7 @@
             <div id="home-menu" class="menu-popover" role="menu" hidden>
               <button id="open-archive" class="menu-item" type="button" role="menuitem">보관함</button>
               <button id="open-cats" class="menu-item" type="button" role="menuitem">카테고리 관리</button>
-              <button class="menu-item" type="button" role="menuitem" data-soon="루틴 관리">루틴 관리<span class="soon-badge">준비 중</span></button>
+              <button id="open-routines" class="menu-item" type="button" role="menuitem">루틴 관리</button>
             </div>
           </div>
         </div>
@@ -176,6 +176,15 @@
       <button id="todo-sheet-close" class="icon-button" type="button" aria-label="닫기">×</button>
     </div>
     <div id="todo-sheet-body"></div>
+  </dialog>
+
+  <!-- 루틴 관리 (목록 / 만들기·고치기) -->
+  <dialog id="routine-dialog" class="sheet routine-sheet" aria-labelledby="routine-title">
+    <div class="sheet-head">
+      <h2 id="routine-title"></h2>
+      <button id="routine-close" class="icon-button" type="button" aria-label="닫기">×</button>
+    </div>
+    <div id="routine-body"></div>
   </dialog>
 
   <!-- 보관함 -->

@@ -1,7 +1,7 @@
 // 시험용 가짜 저장소: 진짜 Firebase 대신 메모리에만 저장해요 (미리보기 시험 전용)
 export const isConfigured = true;
 
-const data = { todos: new Map(), categories: new Map() };
+const data = { todos: new Map(), categories: new Map(), routines: new Map() };
 const listeners = [];
 let authCallback = null;
 
@@ -9,7 +9,8 @@ function emit() {
   const todos = [...data.todos.values()].map((t) => ({ ...t }));
   const categories = [...data.categories.values()].map((c) => ({ ...c })).sort((a, b) => a.order - b.order);
   for (const l of listeners) {
-    setTimeout(() => { l.onTodos(todos); l.onCategories(categories); }, 0);
+    const routines = [...data.routines.values()].map((r) => JSON.parse(JSON.stringify(r)));
+    setTimeout(() => { l.onTodos(todos); l.onCategories(categories); l.onRoutines(routines); }, 0);
   }
 }
 
@@ -43,6 +44,8 @@ export const remote = {
   addCategory: (c) => later(() => data.categories.set(c.id, { ...c })),
   updateCategory: (id, f) => later(() => data.categories.set(id, { ...data.categories.get(id), ...f })),
   deleteCategory: (id) => later(() => data.categories.delete(id)),
+  saveRoutine: (r) => later(() => data.routines.set(r.id, JSON.parse(JSON.stringify(r)))),
+  deleteRoutine: (id) => later(() => data.routines.delete(id)),
   reorderCategories: (ids) => later(() => ids.forEach((id, i) => data.categories.set(id, { ...data.categories.get(id), order: i }))),
 };
 

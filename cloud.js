@@ -37,6 +37,7 @@ const db = app && initializeFirestore(app, {
 let uid = null;
 const todosCol = () => collection(db, 'users', uid, 'todos');
 const categoriesCol = () => collection(db, 'users', uid, 'categories');
+const routinesCol = () => collection(db, 'users', uid, 'routines');
 
 export function watchAuth(callback) {
   onAuthStateChanged(auth, callback);
@@ -55,9 +56,10 @@ export function useAccount(userId) {
 }
 
 // 할 일·카테고리가 바뀔 때마다 알려 줘요. 다른 기기에서 바꿔도 바로 알려 줘요.
-export function subscribe({ onTodos, onCategories, onError }) {
+export function subscribe({ onTodos, onCategories, onRoutines, onError }) {
   const stops = [
     onSnapshot(todosCol(), (snap) => onTodos(snap.docs.map((d) => d.data())), onError),
+    onSnapshot(routinesCol(), (snap) => onRoutines(snap.docs.map((d) => d.data())), onError),
     onSnapshot(
       categoriesCol(),
       (snap) => onCategories(snap.docs.map((d) => d.data()).sort((a, b) => a.order - b.order)),
@@ -96,6 +98,8 @@ export const remote = {
   addCategory: (cat) => setDoc(doc(categoriesCol(), cat.id), cat),
   updateCategory: (id, fields) => updateDoc(doc(categoriesCol(), id), fields),
   deleteCategory: (id) => deleteDoc(doc(categoriesCol(), id)),
+  saveRoutine: (routine) => setDoc(doc(routinesCol(), routine.id), routine),
+  deleteRoutine: (id) => deleteDoc(doc(routinesCol(), id)),
   reorderCategories(ids) {
     const batch = writeBatch(db);
     ids.forEach((id, i) => batch.update(doc(categoriesCol(), id), { order: i }));

@@ -224,11 +224,93 @@ function scheduleRender() {
   if ($catDialog.open) renderCategoryList();
   if ($archiveDialog.open) renderArchive();
   if ($todoSheet.open && sheetMode === 'menu') renderTodoSheet();
+  if ($routineDialog.open && routineView === 'list') renderRoutineList();
 }
 
-// 보관함에 없는(날짜에 놓인) 할 일만
+// 보관함에 없고 지우지 않은(날짜에 놓인) 할 일만
 function activeTodos() {
-  return todos.filter((t) => !t.archived);
+  return todos.filter((t) => !t.archived && !t.deleted);
+}
+
+// ===== 루틴 (반복 할 일) =====
+// 루틴은 해당하는 날마다 '가상 할 일'로 나타나요.
+// 체크·수정·이동처럼 손을 대는 순간 그날 것만 진짜 할 일로 만들어져요 (routineId + routineDate로 연결)
+let routines = [];
+
+function daysBetween(aKey, bKey) {
+  const a = parseDateKey(aKey);
+  const b = parseDateKey(bKey);
+  return Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 86400000);
+}
+
+function routineMatches(r, key) {
+  if (!r.start || key < r.start || (r.end && key > r.end)) return false;
+  const date = parseDateKey(key);
+  const { type, days = [], dates = [], every = 1 } = r.repeat || {};
+  if (type === 'daily') return true;
+  if (type === 'weekly') return days.includes(date.getDay());
+  if (type === 'monthly') return dates.includes(date.getDate());
+  if (type === 'interval') return daysBetween(r.start, key) % Math.max(1, every) === 0;
+  return false;
+}
+
+function describeRoutine(r) {
+  const { type, days = [], dates = [], every = 1 } = r.repeat;
+  const rule = {
+    daily: '매일',
+    weekly: `매주 ${[...days].sort().map((d) => WEEKDAYS[d]).join('·')}`,
+    monthly: `매달 ${[...dates].sort((a, b) => a - b).join('·')}일`,
+    interval: `${every}일마다`,
+  }[type];
+  const short = (key) => { const d = parseDateKey(key); return `${d.getMonth() + 1}월 ${d.getDate()}일`; };
+  return `${rule} · ${short(r.start)}부터${r.end ? ` ${short(r.end)}까지` : ''}`;
+}
+
+// 그날 나타나야 하는데 아직 진짜 할 일로 안 만들어진 루틴들
+function virtualTodosFor(key) {
+  const taken = new Set(todos.filter((t) => t.routineId && t.routineDate === key).map((t) => t.routineId));
+  return routines
+    .filter((r) => !taken.has(r.id) && routineMatches(r, key))
+    .map((r) => ({
+      id: `v:${r.id}:${key}`,
+      virtual: true,
+      routineId: r.id,
+      routineDate: key,
+      title: r.title,
+      date: key,
+      categoryId: r.categoryId,
+      done: false,
+      doneAt: null,
+      order: 100000 + (r.order ?? 0),
+    }));
+}
+
+// id로 진짜 할 일을 찾아요. 가상 할 일이면 그 자리에서 진짜로 만들어요
+function realize(id) {
+  if (!id.startsWith('v:')) return todos.find((t) => t.id === id);
+  const [, routineId, key] = id.split(':');
+  const existing = todos.find((t) => t.routineId === routineId && t.routineDate === key);
+  if (existing) return existing;
+  const r = routines.find((x) => x.id === routineId);
+  if (!r) return null;
+  const todo = {
+    id: newId(),
+    title: r.title,
+    date: key,
+    categoryId: r.categoryId,
+    done: false,
+    doneAt: null,
+    archived: false,
+    archivedAt: null,
+    deleted: false,
+    routineId,
+    routineDate: key,
+    order: nextOrder(key),
+    createdAt: Date.now(),
+  };
+  todos.push(todo);
+  save(remote.addTodo(todo));
+  return todo;
 }
 
 function flushRender() {
@@ -273,7 +355,7 @@ function addTodo(title, categoryId) {
 }
 
 function toggleTodo(id) {
-  const todo = todos.find((t) => t.id === id);
+  const todo = realize(id);
   if (!todo) return;
   todo.done = !todo.done;
   todo.doneAt = todo.done ? Date.now() : null;
@@ -282,14 +364,27 @@ function toggleTodo(id) {
 }
 
 // 묻지 않고 바로 지워요. 대신 알림의 '되돌리기'로 살릴 수 있어요
+// (루틴에서 나온 할 일은 지우면 그날 루틴이 다시 생기지 않게 '지움' 표시만 해 둬요)
 function deleteTodos(ids) {
   const removed = todos.filter((t) => ids.includes(t.id));
-  todos = todos.filter((t) => !ids.includes(t.id));
-  for (const t of removed) save(remote.deleteTodo(t.id));
+  for (const t of removed) {
+    if (t.routineId) {
+      t.deleted = true;
+      save(remote.updateTodo(t.id, { deleted: true }));
+    } else {
+      save(remote.deleteTodo(t.id));
+    }
+  }
+  todos = todos.filter((t) => t.routineId || !ids.includes(t.id));
   return {
     label: '되돌리기',
     run() {
       for (const t of removed) {
+        if (t.routineId) {
+          t.deleted = false;
+          save(remote.updateTodo(t.id, { deleted: false }));
+          continue;
+        }
         if (todos.some((x) => x.id === t.id)) continue;
         todos.push(t);
         save(remote.addTodo(t));
@@ -334,7 +429,8 @@ function archiveTodo(todo) {
 // 고른 날짜의 할 일 (순서대로)
 function dayTodosOf(date) {
   const key = toDateKey(date);
-  return activeTodos().filter((t) => t.date === key).sort((a, b) => a.order - b.order);
+  return [...activeTodos().filter((t) => t.date === key), ...virtualTodosFor(key)]
+    .sort((a, b) => a.order - b.order);
 }
 
 // 미완료 할 일을 전부 다음 날로
@@ -342,7 +438,7 @@ function postponeUndone() {
   const undone = dayTodosOf(selectedDate).filter((t) => !t.done);
   if (!undone.length) return;
   const nextDay = toDateKey(addDays(selectedDate, 1));
-  for (const t of undone) moveTodo(t, nextDay);
+  for (const t of undone) moveTodo(realize(t.id), nextDay);
   render();
 }
 
@@ -395,7 +491,7 @@ function renderSelectBar() {
 }
 
 function selectedTodos() {
-  return todos.filter((t) => selectedIds.has(t.id));
+  return [...selectedIds].map(realize).filter(Boolean);
 }
 
 function runBulk(kind) {
@@ -542,9 +638,6 @@ function renderCalendar() {
   const month = viewMonth.getMonth();
   $calTitle.textContent = `${year}년 ${month + 1}월`;
 
-  // 날짜별로 할 일 묶기
-  const byDate = {};
-  for (const t of activeTodos()) (byDate[t.date] ||= []).push(t);
 
   const todayKey = toDateKey(new Date());
   const selectedKey = toDateKey(selectedDate);
@@ -558,7 +651,7 @@ function renderCalendar() {
   for (let i = 0; i < weeks * 7; i++) {
     const date = addDays(start, i);
     const key = toDateKey(date);
-    const dayTodos = byDate[key] || [];
+    const dayTodos = dayTodosOf(date); // 루틴으로 생기는 할 일도 포함
     const total = dayTodos.length;
     const done = dayTodos.filter((t) => t.done).length;
 
@@ -746,6 +839,13 @@ function renderItem(todo) {
   title.className = 'todo-title';
   title.textContent = todo.title;
   title.addEventListener('click', () => openTodoSheet(todo.id));
+  if (todo.routineId) {
+    const mark = document.createElement('span');
+    mark.className = 'routine-mark';
+    mark.innerHTML = sheetIcon('routine');
+    mark.setAttribute('aria-label', '루틴');
+    title.append(mark);
+  }
 
   li.append(check, title);
   li.dataset.id = todo.id;
@@ -899,7 +999,7 @@ function saveTodoOrder(li) {
   for (const section of $sections.querySelectorAll('.cat-section')) {
     const catId = section.dataset.catId;
     for (const item of section.querySelectorAll('.todo-item[data-id]')) {
-      const todo = todos.find((t) => t.id === item.dataset.id);
+      const todo = realize(item.dataset.id);
       if (!todo) continue;
       const fields = {};
       if (todo.order !== order) fields.order = order;
@@ -966,7 +1066,9 @@ let sheetIds = [];
 let sheetMode = 'menu';
 
 function openTodoSheet(id) {
-  sheetIds = [id];
+  const todo = realize(id);
+  if (!todo) return;
+  sheetIds = [todo.id];
   sheetMode = 'menu';
   renderTodoSheet();
   if (!$todoSheet.open) $todoSheet.showModal();
@@ -1004,6 +1106,7 @@ const SHEET_ICONS = {
   copy: '<rect x="7" y="7" width="8" height="8" rx="1.8"/><path d="M5 12.5V6a1 1 0 0 1 1-1h6.5"/>',
   archive: '<rect x="4" y="5" width="12" height="3" rx="1"/><path d="M5 8v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8M8.5 11h3"/>',
   today: '<circle cx="10" cy="10" r="5.5"/><path d="M10 7.5V10l1.8 1.2"/>',
+  routine: '<path d="M5 9a5 5 0 0 1 8.5-3.5L15 7M15 4v3h-3M15 11a5 5 0 0 1-8.5 3.5L5 13M5 16v-3h3"/>',
 };
 
 function sheetIcon(name) {
@@ -1098,6 +1201,11 @@ function renderTodoSheet() {
         }, 'again'),
         sheetButton('날짜 바꾸기', '', goto('move'), 'date'),
         sheetButton('복사하기', '다른 날에 하나 더', goto('copy'), 'copy'),
+        sheetButton(todo.routineId ? '루틴 수정하기' : '루틴 등록하기', '', () => {
+          closeTodoSheet();
+          const routine = routines.find((r) => r.id === todo.routineId);
+          openRoutineForm(routine || null, routine ? null : todo);
+        }, 'routine'),
         sheetButton('보관함으로 이동', '', () => {
           archiveTodo(todo);
           finishAction('보관함에 넣었어요');
@@ -1253,10 +1361,259 @@ function miniCalendar(currentKey, onPick) {
   return box;
 }
 
+// ===== 루틴 관리 창 =====
+const $routineDialog = document.getElementById('routine-dialog');
+const $routineTitle = document.getElementById('routine-title');
+const $routineBody = document.getElementById('routine-body');
+let routineView = 'list'; // list(목록) / form(만들기·고치기)
+let routineDraft = null; // 만들거나 고치는 중인 루틴
+let routineFromTodoId = null; // '루틴 등록하기'로 시작했으면 그 할 일
+let routineCameFromList = false;
+let routinePicking = null; // 'start' / 'end' 미니 달력이 열려 있는 칸
+
+function el(tag, props = {}, children = []) {
+  const node = Object.assign(document.createElement(tag), props);
+  node.append(...children);
+  return node;
+}
+
+function openRoutineList() {
+  routineView = 'list';
+  renderRoutineDialog();
+  if (!$routineDialog.open) $routineDialog.showModal();
+}
+
+function openRoutineForm(routine, fromTodo = null) {
+  routineCameFromList = $routineDialog.open && routineView === 'list';
+  const start = fromTodo ? fromTodo.date : toDateKey(selectedDate);
+  const startDate = parseDateKey(start);
+  routineDraft = routine
+    ? JSON.parse(JSON.stringify(routine))
+    : {
+        id: null,
+        title: fromTodo ? fromTodo.title : '',
+        categoryId: fromTodo ? fromTodo.categoryId : categories[0]?.id,
+        repeat: { type: 'weekly', days: [startDate.getDay()], dates: [startDate.getDate()], every: 2 },
+        start,
+        end: null,
+      };
+  routineDraft.repeat.days ||= [startDate.getDay()];
+  routineDraft.repeat.dates ||= [startDate.getDate()];
+  routineDraft.repeat.every ||= 2;
+  routineFromTodoId = fromTodo ? fromTodo.id : null;
+  routinePicking = null;
+  routineView = 'form';
+  renderRoutineDialog();
+  if (!$routineDialog.open) $routineDialog.showModal();
+}
+
+function renderRoutineDialog() {
+  if (routineView === 'list') renderRoutineList();
+  else renderRoutineForm();
+}
+
+function renderRoutineList() {
+  $routineTitle.textContent = '루틴 관리';
+  const items = [...routines].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((r) => {
+    const button = el('button', { type: 'button', className: 'archive-item' }, [
+      el('span', { className: 'cat-dot' }),
+      el('span', { className: 'archive-title' }, [
+        el('span', { className: 'routine-name', textContent: r.title }),
+        el('span', { className: 'routine-rule', textContent: describeRoutine(r) }),
+      ]),
+    ]);
+    button.style.setProperty('--cat', categoryColor(r.categoryId));
+    button.addEventListener('click', () => openRoutineForm(r));
+    return el('li', {}, [button]);
+  });
+  const list = el('ul', { className: 'archive-list' }, items);
+  const empty = el('p', { className: 'archive-empty', textContent: '아직 루틴이 없어요.' });
+  empty.hidden = items.length > 0;
+  const add = el('button', { type: 'button', className: 'cat-add', textContent: '+ 새 루틴' });
+  add.addEventListener('click', () => openRoutineForm(null));
+  $routineBody.replaceChildren(list, empty, add);
+}
+
+function renderRoutineForm() {
+  const d = routineDraft;
+  $routineTitle.textContent = d.id ? '루틴 고치기' : '새 루틴';
+
+  // 이름
+  const name = el('input', { type: 'text', className: 'edit-input', maxLength: 200, value: d.title, placeholder: '예: 헬스장 가기' });
+  name.setAttribute('aria-label', '루틴 이름');
+  name.addEventListener('input', () => { d.title = name.value; });
+
+  // 카테고리
+  const cats = el('div', { className: 'chip-row' }, categories.map((c) => {
+    const chip = el('button', { type: 'button', className: 'cat-chip' + (c.id === d.categoryId ? ' on' : '') }, [
+      el('span', { className: 'cat-dot' }), c.name,
+    ]);
+    chip.style.setProperty('--cat', safeColor(c.color));
+    chip.addEventListener('click', () => { d.categoryId = c.id; renderRoutineForm(); });
+    return chip;
+  }));
+
+  // 반복 방식
+  const types = [['daily', '매일'], ['weekly', '매주'], ['monthly', '매달'], ['interval', '며칠마다']];
+  const seg = el('div', { className: 'segmented' }, types.map(([type, label]) => {
+    const b = el('button', { type: 'button', className: 'seg' + (d.repeat.type === type ? ' on' : ''), textContent: label });
+    b.addEventListener('click', () => { d.repeat.type = type; renderRoutineForm(); });
+    return b;
+  }));
+
+  const detail = el('div', { className: 'repeat-detail' });
+  if (d.repeat.type === 'weekly') {
+    detail.append(el('div', { className: 'chip-row weekdays' }, WEEKDAYS.map((w, i) => {
+      const b = el('button', { type: 'button', className: 'day-chip' + (d.repeat.days.includes(i) ? ' on' : ''), textContent: w });
+      b.addEventListener('click', () => {
+        const set = new Set(d.repeat.days);
+        set.has(i) ? set.delete(i) : set.add(i);
+        d.repeat.days = [...set];
+        renderRoutineForm();
+      });
+      return b;
+    })));
+  } else if (d.repeat.type === 'monthly') {
+    const grid = el('div', { className: 'month-days' });
+    for (let n = 1; n <= 31; n++) {
+      const b = el('button', { type: 'button', className: 'day-chip' + (d.repeat.dates.includes(n) ? ' on' : ''), textContent: n });
+      b.addEventListener('click', () => {
+        const set = new Set(d.repeat.dates);
+        set.has(n) ? set.delete(n) : set.add(n);
+        d.repeat.dates = [...set];
+        renderRoutineForm();
+      });
+      grid.append(b);
+    }
+    detail.append(grid, el('p', { className: 'sheet-hint', textContent: '31일처럼 없는 날짜가 있는 달은 그날을 건너뛰어요.' }));
+  } else if (d.repeat.type === 'interval') {
+    const every = el('input', { type: 'number', className: 'every-input', min: 1, max: 365, value: d.repeat.every, inputMode: 'numeric' });
+    every.setAttribute('aria-label', '며칠마다');
+    every.addEventListener('input', () => { d.repeat.every = Math.max(1, Math.min(365, parseInt(every.value, 10) || 1)); });
+    detail.append(el('label', { className: 'every-row' }, [every, '일마다 (시작일부터 세요)']));
+  }
+
+  // 시작일 · 종료일
+  const dateRow = (label, field) => {
+    const value = d[field];
+    const row = el('button', { type: 'button', className: 'date-row' + (routinePicking === field ? ' open' : '') }, [
+      el('span', { textContent: label }),
+      el('span', { className: 'date-row-value', textContent: value ? formatDateKey(value) : '없음' }),
+    ]);
+    row.addEventListener('click', () => { routinePicking = routinePicking === field ? null : field; renderRoutineForm(); });
+    const parts = [row];
+    if (routinePicking === field) {
+      parts.push(miniCalendar(value || d.start, (key) => {
+        d[field] = key;
+        if (d.end && d.end < d.start) d.end = field === 'start' ? null : d.end;
+        routinePicking = null;
+        renderRoutineForm();
+      }));
+      if (field === 'end' && d.end) {
+        const none = el('button', { type: 'button', className: 'text-button no-end', textContent: '종료일 없애기' });
+        none.addEventListener('click', () => { d.end = null; routinePicking = null; renderRoutineForm(); });
+        parts.push(none);
+      }
+    }
+    return parts;
+  };
+
+  const error = el('p', { className: 'form-error', role: 'alert' });
+
+  // 아래 버튼들
+  const buttons = el('div', { className: 'date-form-buttons' });
+  if (d.id) {
+    const del = el('button', { type: 'button', className: 'text-button danger-text', textContent: '루틴 삭제' });
+    del.addEventListener('click', () => deleteRoutine(d.id));
+    buttons.append(del);
+  }
+  const cancel = el('button', { type: 'button', className: 'text-button', textContent: '취소' });
+  cancel.addEventListener('click', closeRoutineForm);
+  const ok = el('button', { type: 'button', className: 'primary-button', textContent: '저장' });
+  ok.addEventListener('click', () => {
+    const problem = saveRoutine();
+    if (problem) error.textContent = problem;
+  });
+  buttons.append(cancel, ok);
+
+  $routineBody.replaceChildren(
+    el('div', { className: 'routine-form' }, [
+      name,
+      el('p', { className: 'field-label', textContent: '카테고리' }), cats,
+      el('p', { className: 'field-label', textContent: '반복' }), seg, detail,
+      ...dateRow('시작일', 'start'),
+      ...dateRow('종료일', 'end'),
+      error,
+      buttons,
+    ])
+  );
+}
+
+function closeRoutineForm() {
+  if (routineCameFromList) openRoutineList();
+  else $routineDialog.close();
+}
+
+// 저장. 문제가 있으면 그 이유를 돌려줘요
+function saveRoutine() {
+  const d = routineDraft;
+  const title = d.title.trim();
+  if (!title) return '루틴 이름을 적어 주세요.';
+  if (!d.categoryId) return '카테고리를 골라 주세요.';
+  if (d.repeat.type === 'weekly' && !d.repeat.days.length) return '요일을 하나 이상 골라 주세요.';
+  if (d.repeat.type === 'monthly' && !d.repeat.dates.length) return '날짜를 하나 이상 골라 주세요.';
+  if (d.end && d.end < d.start) return '종료일은 시작일보다 뒤여야 해요.';
+
+  const routine = {
+    id: d.id || newId(),
+    title,
+    categoryId: d.categoryId,
+    repeat: { type: d.repeat.type, days: d.repeat.days, dates: d.repeat.dates, every: d.repeat.every },
+    start: d.start,
+    end: d.end || null,
+    order: d.order ?? routines.length,
+    createdAt: d.createdAt || Date.now(),
+  };
+  const index = routines.findIndex((r) => r.id === routine.id);
+  if (index >= 0) routines[index] = routine;
+  else routines.push(routine);
+  save(remote.saveRoutine(routine));
+
+  // '루틴 등록하기'로 만든 거면, 원래 할 일을 그날의 루틴으로 연결해요 (같은 날 두 개 생기지 않게)
+  const source = routineFromTodoId && todos.find((t) => t.id === routineFromTodoId);
+  if (source && !source.routineId && routineMatches(routine, source.date)) {
+    Object.assign(source, { routineId: routine.id, routineDate: source.date });
+    save(remote.updateTodo(source.id, { routineId: routine.id, routineDate: source.date }));
+  }
+
+  render();
+  closeRoutineForm();
+  return null;
+}
+
+function deleteRoutine(id) {
+  const routine = routines.find((r) => r.id === id);
+  if (!routine) return;
+  routines = routines.filter((r) => r.id !== id);
+  save(remote.deleteRoutine(id));
+  render();
+  closeRoutineForm();
+  showToast(`'${routine.title}' 루틴을 지웠어요`, {
+    label: '되돌리기',
+    run() {
+      if (routines.some((r) => r.id === id)) return;
+      routines.push(routine);
+      save(remote.saveRoutine(routine));
+      render();
+      if ($routineDialog.open && routineView === 'list') renderRoutineList();
+    },
+  });
+}
+
 // ===== 보관함 =====
 function renderArchive() {
   const items = todos
-    .filter((t) => t.archived)
+    .filter((t) => t.archived && !t.deleted)
     .sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
 
   $archiveList.replaceChildren(...items.map((todo) => {
@@ -1465,6 +1822,11 @@ document.getElementById('open-archive').addEventListener('click', () => {
   $archiveDialog.showModal();
 });
 document.getElementById('archive-close').addEventListener('click', () => $archiveDialog.close());
+document.getElementById('open-routines').addEventListener('click', openRoutineList);
+document.getElementById('routine-close').addEventListener('click', () => $routineDialog.close());
+$routineDialog.addEventListener('click', (e) => {
+  if (e.target === $routineDialog) $routineDialog.close();
+});
 document.getElementById('todo-sheet-close').addEventListener('click', closeTodoSheet);
 
 // 창 바깥(어두운 부분)을 누르면 닫혀요
@@ -1629,7 +1991,8 @@ if (!isConfigured) {
     if (!user) {
       todos = [];
       categories = [];
-      for (const dialog of [$catDialog, $todoSheet, $archiveDialog]) dialog.close();
+      routines = [];
+      for (const dialog of [$catDialog, $todoSheet, $archiveDialog, $routineDialog]) dialog.close();
       if (selecting) stopSelecting();
       showTab('home');
       showScreen('login');
@@ -1644,14 +2007,16 @@ if (!isConfigured) {
 
     let gotTodos = false;
     let gotCategories = false;
+    let gotRoutines = false;
     const ready = () => {
-      if (!gotTodos || !gotCategories) return;
+      if (!gotTodos || !gotCategories || !gotRoutines) return;
       showScreen('app');
       scheduleRender();
     };
     stopSync = subscribe({
       onTodos: (list) => { todos = list; gotTodos = true; ready(); },
       onCategories: (list) => { categories = list; gotCategories = true; ready(); },
+      onRoutines: (list) => { routines = list; gotRoutines = true; ready(); },
       onError: (err) => {
         showLoginError(err);
         logout();
