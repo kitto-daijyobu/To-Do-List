@@ -213,7 +213,7 @@ let pointerIsDown = false;
 let renderPending = false;
 
 function scheduleRender() {
-  const typing = document.activeElement?.matches?.('.add-input, .cat-name, .todo-edit');
+  const typing = document.activeElement?.matches?.('.add-input, .cat-name, .edit-input');
   if (pointerIsDown || typing) {
     renderPending = true;
     return;
@@ -740,20 +740,14 @@ function renderItem(todo) {
   check.setAttribute('aria-label', todo.done ? '완료 취소' : '완료');
   check.addEventListener('click', () => toggleTodo(todo.id));
 
-  const title = document.createElement('span');
+  // 할 일 이름을 누르면 메뉴가 열려요 (투두메이트처럼)
+  const title = document.createElement('button');
+  title.type = 'button';
   title.className = 'todo-title';
   title.textContent = todo.title;
-  title.title = '눌러서 이름 고치기';
-  title.addEventListener('click', () => startEditTitle(title, todo));
+  title.addEventListener('click', () => openTodoSheet(todo.id));
 
-  const more = document.createElement('button');
-  more.className = 'more';
-  more.type = 'button';
-  more.innerHTML = MORE_ICON;
-  more.setAttribute('aria-label', `${todo.title} 메뉴`);
-  more.addEventListener('click', () => openTodoSheet(todo.id));
-
-  li.append(check, title, more);
+  li.append(check, title);
   li.dataset.id = todo.id;
   li.addEventListener('pointerdown', (e) => pressTodo(e, li));
   return li;
@@ -957,13 +951,46 @@ function finishAction(message, action = null) {
   if (message) showToast(message, action);
 }
 
-function sheetButton(label, hint, onClick, extraClass = '') {
+// 메뉴 아이콘 (동그라미 안에 들어가요)
+const SHEET_ICONS = {
+  edit: '<path d="M4 14.5V16h1.5l7.7-7.7-1.5-1.5zM13.6 5.2l1.2 1.2"/>',
+  trash: '<path d="M5 6.5h10M8.3 6.5V5h3.4v1.5M6.4 6.5l.6 9h6l.6-9M8.8 9.5v3.5M11.2 9.5v3.5"/>',
+  next: '<path d="M5 10h10M11 6l4 4-4 4"/>',
+  again: '<path d="M14.5 7.5A5 5 0 1 0 15 11M14.8 4.5v3.2h-3.2"/>',
+  date: '<rect x="4.5" y="5.5" width="11" height="10" rx="2"/><path d="M4.5 8.5h11M7.5 4v3M12.5 4v3"/>',
+  copy: '<rect x="7" y="7" width="8" height="8" rx="1.8"/><path d="M5 12.5V6a1 1 0 0 1 1-1h6.5"/>',
+  archive: '<rect x="4" y="5" width="12" height="3" rx="1"/><path d="M5 8v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8M8.5 11h3"/>',
+  today: '<circle cx="10" cy="10" r="5.5"/><path d="M10 7.5V10l1.8 1.2"/>',
+};
+
+function sheetIcon(name) {
+  return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SHEET_ICONS[name]}</svg>`;
+}
+
+// 맨 위 큰 버튼 (수정하기 / 삭제하기)
+function sheetTile(label, icon, onClick, extraClass = '') {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = `sheet-action ${extraClass}`.trim();
+  button.className = `sheet-tile ${extraClass}`.trim();
+  button.innerHTML = sheetIcon(icon);
   const text = document.createElement('span');
   text.textContent = label;
   button.append(text);
+  button.addEventListener('click', onClick);
+  return button;
+}
+
+function sheetButton(label, hint, onClick, icon = 'next') {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'sheet-action';
+  const badge = document.createElement('span');
+  badge.className = 'sheet-action-icon';
+  badge.innerHTML = sheetIcon(icon);
+  const text = document.createElement('span');
+  text.className = 'sheet-action-label';
+  text.textContent = label;
+  button.append(badge, text);
   if (hint) {
     const small = document.createElement('span');
     small.className = 'sheet-action-hint';
@@ -985,6 +1012,10 @@ function renderTodoSheet() {
   $todoSheet.style.setProperty('--cat', many ? 'var(--primary)' : categoryColor(todo.categoryId));
   $todoSheetTitle.textContent = many ? `할 일 ${targets.length}개` : todo.title;
 
+  if (sheetMode === 'edit') {
+    $todoSheetBody.replaceChildren(renderEditForm(todo));
+    return;
+  }
   if (sheetMode !== 'menu') {
     $todoSheetBody.replaceChildren(renderDateForm(targets));
     return;
@@ -992,52 +1023,99 @@ function renderTodoSheet() {
 
   const nextDay = toDateKey(addDays(parseDateKey(todo.date), 1));
   const todayKey = toDateKey(new Date());
-  const items = [];
+  const goto = (mode) => () => {
+    sheetMode = mode;
+    renderTodoSheet();
+  };
 
-  if (todo.archived) {
-    items.push(
-      sheetButton('오늘 하기', formatDateKey(todayKey), () => {
-        moveTodo(todo, todayKey);
-        finishAction('오늘 할 일로 꺼냈어요');
-      }),
-      sheetButton('날짜 정해서 꺼내기', '', () => {
-        sheetMode = 'restore';
-        renderTodoSheet();
-      })
-    );
-  } else {
-    items.push(
-      sheetButton('내일 하기', formatDateKey(nextDay), () => {
-        moveTodo(todo, nextDay);
-        finishAction(`${formatDateKey(nextDay)}로 옮겼어요`);
-      }),
-      sheetButton('내일 또 하기', '오늘 것은 그대로', () => {
-        copyTodo(todo, nextDay);
-        finishAction(`${formatDateKey(nextDay)}에도 추가했어요`);
-      }),
-      sheetButton('날짜 바꾸기', '', () => {
-        sheetMode = 'move';
-        renderTodoSheet();
-      }),
-      sheetButton('복사하기', '다른 날에 하나 더', () => {
-        sheetMode = 'copy';
-        renderTodoSheet();
-      }),
-      sheetButton('보관하기', '날짜 없이 넣어 두기', () => {
-        archiveTodo(todo);
-        finishAction('보관함에 넣었어요');
-      })
-    );
-  }
-
-  items.push(
-    sheetButton('삭제', '', () => {
-      const undo = deleteTodos([todo.id]);
-      finishAction('지웠어요', undo);
-    }, 'danger')
+  // 맨 위: 수정하기 / 삭제하기
+  const tiles = document.createElement('div');
+  tiles.className = 'sheet-tiles';
+  tiles.append(
+    sheetTile('수정하기', 'edit', goto('edit')),
+    sheetTile('삭제하기', 'trash', () => finishAction('지웠어요', deleteTodos([todo.id])), 'danger')
   );
 
-  $todoSheetBody.replaceChildren(...items);
+  const items = todo.archived
+    ? [
+        sheetButton('오늘 하기', formatDateKey(todayKey), () => {
+          moveTodo(todo, todayKey);
+          finishAction('오늘 할 일로 꺼냈어요');
+        }, 'today'),
+        sheetButton('날짜 정해서 꺼내기', '', goto('restore'), 'date'),
+      ]
+    : [
+        sheetButton('내일 하기', formatDateKey(nextDay), () => {
+          moveTodo(todo, nextDay);
+          finishAction(`${formatDateKey(nextDay)}로 옮겼어요`);
+        }, 'next'),
+        sheetButton('내일 또 하기', '오늘 것은 그대로', () => {
+          copyTodo(todo, nextDay);
+          finishAction(`${formatDateKey(nextDay)}에도 추가했어요`);
+        }, 'again'),
+        sheetButton('날짜 바꾸기', '', goto('move'), 'date'),
+        sheetButton('복사하기', '다른 날에 하나 더', goto('copy'), 'copy'),
+        sheetButton('보관함으로 이동', '', () => {
+          archiveTodo(todo);
+          finishAction('보관함에 넣었어요');
+        }, 'archive'),
+      ];
+
+  $todoSheetBody.replaceChildren(tiles, ...items);
+}
+
+// 이름 고치기
+function renderEditForm(todo) {
+  const form = document.createElement('form');
+  form.className = 'date-form';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'edit-input';
+  input.maxLength = 200;
+  input.value = todo.title;
+  input.setAttribute('aria-label', '할 일 이름');
+
+  const buttons = document.createElement('div');
+  buttons.className = 'date-form-buttons';
+  buttons.append(backButton('뒤로'), Object.assign(document.createElement('button'), {
+    type: 'submit', className: 'primary-button', textContent: '저장',
+  }));
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const value = input.value.trim();
+    if (value && value !== todo.title) {
+      todo.title = value;
+      save(remote.updateTodo(todo.id, { title: value }));
+    }
+    sheetMode = 'menu';
+    render();
+    renderTodoSheet();
+  });
+
+  form.append(input, buttons);
+  setTimeout(() => {
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }, 0);
+  return form;
+}
+
+// 메뉴로 돌아가기 (여러 개 선택에서 왔으면 창 닫기)
+function backButton(label) {
+  const back = document.createElement('button');
+  back.type = 'button';
+  back.className = 'text-button';
+  back.textContent = label;
+  back.addEventListener('click', () => {
+    if (label === '취소') {
+      closeTodoSheet();
+      return;
+    }
+    sheetMode = 'menu';
+    renderTodoSheet();
+  });
+  return back;
 }
 
 // 날짜 고르기 (날짜 바꾸기 / 복사하기 / 꺼내기) — 여러 개도 한 번에
@@ -1049,47 +1127,17 @@ function renderDateForm(targets) {
     copy: ['어느 날에 복사할까요?', '복사하기'],
     restore: ['어느 날로 꺼낼까요?', '꺼내기'],
   };
-  const [question, confirmLabel] = labels[sheetMode];
+  const [question] = labels[sheetMode];
 
-  const form = document.createElement('form');
-  form.className = 'date-form';
+  const wrap = document.createElement('div');
+  wrap.className = 'date-form';
 
-  const label = document.createElement('label');
+  const label = document.createElement('p');
   label.className = 'date-form-label';
   label.textContent = question;
 
-  const input = document.createElement('input');
-  input.type = 'date';
-  input.className = 'date-input';
-  input.required = true;
-  input.value = todo.archived ? toDateKey(new Date()) : todo.date;
-  label.append(input);
-
-  const buttons = document.createElement('div');
-  buttons.className = 'date-form-buttons';
-  const back = document.createElement('button');
-  back.type = 'button';
-  back.className = 'text-button';
-  // 여러 개 선택에서 왔으면 '취소'(창 닫기), ⋯ 메뉴에서 왔으면 '뒤로'(메뉴로)
-  back.textContent = fromSelection ? '취소' : '뒤로';
-  back.addEventListener('click', () => {
-    if (fromSelection) {
-      closeTodoSheet();
-      return;
-    }
-    sheetMode = 'menu';
-    renderTodoSheet();
-  });
-  const ok = document.createElement('button');
-  ok.type = 'submit';
-  ok.className = 'primary-button';
-  ok.textContent = confirmLabel;
-  buttons.append(back, ok);
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const key = input.value;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
+  // 날짜를 누르면 바로 옮기기/복사/꺼내기
+  const pick = (key) => {
     const count = targets.length > 1 ? `${targets.length}개를 ` : '';
     if (sheetMode === 'copy') {
       targets.forEach((t) => copyTodo(t, key));
@@ -1098,10 +1146,68 @@ function renderDateForm(targets) {
       targets.forEach((t) => moveTodo(t, key));
       finishAction(`${count}${formatDateKey(key)}로 옮겼어요`);
     }
-  });
+  };
+  const current = todo.archived ? toDateKey(new Date()) : todo.date;
 
-  form.append(label, buttons);
-  return form;
+  const buttons = document.createElement('div');
+  buttons.className = 'date-form-buttons';
+  buttons.append(backButton(fromSelection ? '취소' : '뒤로'));
+
+  wrap.append(label, miniCalendar(current, pick), buttons);
+  return wrap;
+}
+
+// 귀여운 미니 달력: 날짜를 누르면 onPick('2026-10-21')
+function miniCalendar(currentKey, onPick) {
+  const box = document.createElement('div');
+  box.className = 'mini-cal';
+  let month = parseDateKey(currentKey);
+  month = new Date(month.getFullYear(), month.getMonth(), 1);
+  const todayKey = toDateKey(new Date());
+
+  const draw = () => {
+    const head = document.createElement('div');
+    head.className = 'mini-cal-head';
+    const prev = Object.assign(document.createElement('button'), { type: 'button', className: 'cal-nav', innerHTML: '‹' });
+    const next = Object.assign(document.createElement('button'), { type: 'button', className: 'cal-nav', innerHTML: '›' });
+    prev.setAttribute('aria-label', '이전 달');
+    next.setAttribute('aria-label', '다음 달');
+    prev.addEventListener('click', () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); draw(); });
+    next.addEventListener('click', () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); draw(); });
+    const title = document.createElement('span');
+    title.className = 'mini-cal-title';
+    title.textContent = `${month.getFullYear()}년 ${month.getMonth() + 1}월`;
+    head.append(prev, title, next);
+
+    const grid = document.createElement('div');
+    grid.className = 'mini-cal-grid';
+    WEEKDAYS.forEach((w, i) => {
+      const s = document.createElement('span');
+      s.className = 'mini-cal-wd' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '');
+      s.textContent = w;
+      grid.append(s);
+    });
+    for (let i = 0; i < month.getDay(); i++) grid.append(document.createElement('span'));
+    const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+    for (let d = 1; d <= days; d++) {
+      const date = new Date(month.getFullYear(), month.getMonth(), d);
+      const key = toDateKey(date);
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'mini-cal-day';
+      if (date.getDay() === 0) b.classList.add('sun');
+      if (date.getDay() === 6) b.classList.add('sat');
+      if (key === todayKey) b.classList.add('today');
+      if (key === currentKey) b.classList.add('current');
+      b.textContent = d;
+      b.setAttribute('aria-label', formatDateKey(key));
+      b.addEventListener('click', () => onPick(key));
+      grid.append(b);
+    }
+    box.replaceChildren(head, grid);
+  };
+  draw();
+  return box;
 }
 
 // ===== 보관함 =====

@@ -391,7 +391,16 @@ button.check:hover { border-color: var(--cat); }
   transition: color 0.15s;
 }
 
-.todo-title { cursor: text; }
+/* 할 일 이름: 누르면 메뉴가 열리는 버튼 */
+button.todo-title {
+  padding: 4px 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
 
 /* 이름 고치는 중 */
 .todo-edit {
@@ -688,6 +697,115 @@ button.check:hover { border-color: var(--cat); }
 }
 
 .sheet-action:hover { background: var(--bg); }
+
+.sheet-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.sheet-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 8px;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sheet-tile svg { width: 26px; height: 26px; color: var(--primary); }
+.sheet-tile:hover { background: var(--primary-soft); }
+.sheet-tile.danger svg { color: var(--danger); }
+.sheet-tile.danger:hover { background: #fbeeed; }
+
+.sheet-action { justify-content: flex-start; }
+.sheet-action-label { flex: 1; }
+
+.sheet-action-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  background: var(--primary);
+  border-radius: 50%;
+}
+
+.sheet-action-icon svg { width: 18px; height: 18px; }
+
+.edit-input {
+  width: 100%;
+  padding: 12px 14px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+}
+
+.edit-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+
+/* 미니 달력 */
+.mini-cal {
+  padding: 10px;
+  background: var(--bg);
+  border-radius: 16px;
+}
+
+.mini-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.mini-cal-head .cal-nav { font-size: 22px; line-height: 1; }
+.mini-cal-title { font-size: 15px; font-weight: 700; }
+
+.mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  text-align: center;
+}
+
+.mini-cal-wd {
+  padding: 4px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mini-cal-wd.sun, .mini-cal-day.sun { color: var(--sunday); }
+.mini-cal-wd.sat, .mini-cal-day.sat { color: var(--saturday); }
+
+.mini-cal-day {
+  justify-self: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mini-cal-day:hover { background: var(--primary-soft); }
+.mini-cal-day.today { font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--primary); }
+.mini-cal-day.current { font-weight: 700; color: #fff; background: var(--primary); }
 
 .sheet-action-hint {
   font-size: 13px;

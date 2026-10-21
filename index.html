@@ -64,12 +64,14 @@
         <div class="day-top">
           <p id="day-label" class="day-label"></p>
           <div class="day-actions">
-            <button id="start-select" class="text-button" type="button">선택</button>
-            <button id="open-archive" class="text-button" type="button">보관함</button>
+            <button id="start-select" class="menu-button" type="button" aria-label="여러 개 선택">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M7 10.2l2.1 2.1L13.2 8"/></svg>
+            </button>
             <button id="open-menu" class="menu-button" type="button" aria-label="메뉴" aria-haspopup="menu" aria-expanded="false" aria-controls="home-menu">
               <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12"/></svg>
             </button>
             <div id="home-menu" class="menu-popover" role="menu" hidden>
+              <button id="open-archive" class="menu-item" type="button" role="menuitem">보관함</button>
               <button id="open-cats" class="menu-item" type="button" role="menuitem">카테고리 관리</button>
               <button class="menu-item" type="button" role="menuitem" data-soon="루틴 관리">루틴 관리<span class="soon-badge">준비 중</span></button>
             </div>
