@@ -9,10 +9,21 @@ service cloud.firestore {
       return signedIn() && exists(path) && get(path).data.status == 'accepted';
     }
 
-    // 공개 프로필: 로그인한 사람 누구나 읽기(친구 코드 찾기), 본인만 쓰기
+    // 공개 프로필: 계정 번호를 아는 사람만 하나씩 읽기(목록 보기 금지), 본인만 쓰기
     match /profiles/{uid} {
-      allow read: if signedIn();
-      allow write: if isMe(uid);
+      allow get: if signedIn();
+      allow write: if isMe(uid)
+        && request.resource.data.nickname is string && request.resource.data.nickname.size() <= 20
+        && request.resource.data.bio is string && request.resource.data.bio.size() <= 60
+        && request.resource.data.photo is string && request.resource.data.photo.size() <= 150000
+        && request.resource.data.friendCode is string && request.resource.data.friendCode.size() == 6;
+    }
+
+    // 친구 코드 → 계정: 코드를 정확히 아는 사람만 찾기(목록 보기 금지). 코드는 처음 만든 사람 것
+    match /friendCodes/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && code.size() == 6;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
     // 팔로우: 요청은 보내는 사람이, 수락은 받는 사람이, 끊기는 둘 다
@@ -47,7 +58,10 @@ service cloud.firestore {
       // 이모지·댓글: 친구가 남기고, 남긴 사람이 지우기
       match /reactions/{id} {
         allow read: if follows(uid);
-        allow create: if follows(uid) && request.resource.data.from == request.auth.uid;
+        allow create: if follows(uid)
+          && request.resource.data.from == request.auth.uid
+          && (!('text' in request.resource.data) || (request.resource.data.text is string && request.resource.data.text.size() <= 300))
+          && (!('emoji' in request.resource.data) || (request.resource.data.emoji is string && request.resource.data.emoji.size() <= 16));
         allow delete: if signedIn() && resource.data.from == request.auth.uid;
       }
     }

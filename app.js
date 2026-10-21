@@ -2590,9 +2590,21 @@ function personName(personUid) {
   return people.get(personUid)?.nickname || '친구';
 }
 
+// 다른 사람이 적어 둔 사진 주소는 믿지 않아요: 앱이 줄인 사진(data:image/jpeg)과 구글 사진만 보여 줘요
+function safePhoto(photo) {
+  if (typeof photo !== 'string') return null;
+  if (photo.startsWith('data:image/jpeg;base64,')) return photo;
+  if (/^https:\/\/lh\d\.googleusercontent\.com\//.test(photo)) return photo;
+  return null;
+}
+
 function personView(personUid) {
   const p = people.get(personUid) || {};
-  return { nickname: p.nickname || '친구', bio: p.bio || '', photo: p.photo || null };
+  return {
+    nickname: String(p.nickname || '친구').slice(0, 20),
+    bio: String(p.bio || '').slice(0, 60),
+    photo: safePhoto(p.photo),
+  };
 }
 
 const followingIds = () => follows.mine.filter((f) => f.status === 'accepted').map((f) => f.to);
@@ -2614,7 +2626,12 @@ async function ensureFriendCode() {
 function publishProfile() {
   if (!profile?.friendCode) return;
   const view = profileView();
-  social.savePublicProfile({ nickname: view.nickname, bio: view.bio, photo: view.photo || '', friendCode: profile.friendCode })
+  social.savePublicProfile({
+    nickname: view.nickname.slice(0, 20),
+    bio: view.bio.slice(0, 60),
+    photo: safePhoto(view.photo) || '',
+    friendCode: profile.friendCode,
+  })
     .catch(markSocialBroken);
 }
 

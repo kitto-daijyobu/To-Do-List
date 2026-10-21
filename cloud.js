@@ -20,7 +20,7 @@ import {
   writeBatch,
   onSnapshot,
   getDocsFromServer,
-  getDocs,
+  getDoc,
   query,
   where,
 } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js';
@@ -111,12 +111,20 @@ async function updateMany(colRef, changes) {
 
 // ===== 친구 =====
 // profiles/{계정}: 친구에게 보이는 공개 프로필 (닉네임·사진·한 줄 소개·친구 코드)
+// friendCodes/{코드}: 코드 → 계정. 코드를 정확히 아는 사람만 찾을 수 있어요 (목록 보기는 막혀 있어요)
 // follows/{보는사람_보이는사람}: 팔로우 요청 (pending) → 수락 (accepted)
 export const social = {
-  savePublicProfile: (p) => setDoc(doc(db, 'profiles', uid), { ...p, uid }),
+  async savePublicProfile(p) {
+    await setDoc(doc(db, 'profiles', uid), { ...p, uid });
+    const codeRef = doc(db, 'friendCodes', p.friendCode);
+    const existing = await getDoc(codeRef);
+    if (!existing.exists()) await setDoc(codeRef, { uid });
+  },
   async findByCode(code) {
-    const snap = await getDocs(query(collection(db, 'profiles'), where('friendCode', '==', code)));
-    return snap.empty ? null : snap.docs[0].data();
+    const codeSnap = await getDoc(doc(db, 'friendCodes', code));
+    if (!codeSnap.exists()) return null;
+    const profileSnap = await getDoc(doc(db, 'profiles', codeSnap.data().uid));
+    return profileSnap.exists() ? profileSnap.data() : { uid: codeSnap.data().uid, nickname: '친구' };
   },
   watchProfile: (otherUid, callback) =>
     onSnapshot(doc(db, 'profiles', otherUid), (s) => callback(s.exists() ? s.data() : null), () => callback(null)),
