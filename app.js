@@ -1,6 +1,17 @@
-// ===== 저장소 =====
-// 지금은 이 컴퓨터의 브라우저 안에만 저장해요.
-// 4단계에서 이 부분만 인터넷 저장소(Firebase)로 바꿀 예정이에요.
+import {
+  isConfigured,
+  watchAuth,
+  login,
+  logout,
+  useAccount,
+  subscribe,
+  seedIfEmpty,
+  remote,
+} from './cloud.js';
+
+// ===== 예전 저장 위치 =====
+// 1~3단계에서는 이 브라우저 안에만 저장했어요.
+// 처음 로그인할 때 여기 있던 할 일을 인터넷 저장소로 옮겨요. (원본은 지우지 않아요)
 const TODOS_KEY = 'mytodo.todos.v1';
 const CATEGORIES_KEY = 'mytodo.categories.v1';
 
@@ -12,21 +23,6 @@ function loadJSON(key, fallback) {
     return fallback;
   }
 }
-
-function saveJSON(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // 저장 공간을 쓸 수 없는 환경이면 조용히 넘어가요
-  }
-}
-
-const store = {
-  loadTodos: () => loadJSON(TODOS_KEY, []),
-  saveTodos: (todos) => saveJSON(TODOS_KEY, todos),
-  loadCategories: () => loadJSON(CATEGORIES_KEY, null),
-  saveCategories: (categories) => saveJSON(CATEGORIES_KEY, categories),
-};
 
 // ===== 카테고리 색 =====
 // 카테고리 색은 이 목록에서 골라요
@@ -89,15 +85,26 @@ function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-// ===== 상태 =====
-let categories = store.loadCategories() || DEFAULT_CATEGORIES.map((c) => ({ ...c }));
-let todos = store.loadTodos();
-
-// 예전(1·2단계)에 만든 할 일은 첫 번째 카테고리로 넣어 줘요
-for (const t of todos) {
-  if (!t.categoryId) t.categoryId = categories[0].id;
-  if (t.done && !t.doneAt) t.doneAt = t.createdAt;
+// 처음 로그인할 때 올릴 카테고리와 할 일 (이 브라우저에 있던 것)
+function localDataForSeed() {
+  const categories = loadJSON(CATEGORIES_KEY, null) || DEFAULT_CATEGORIES;
+  const todos = loadJSON(TODOS_KEY, []).map((t) => ({
+    id: t.id,
+    title: t.title,
+    date: t.date,
+    categoryId: t.categoryId || categories[0].id,
+    done: Boolean(t.done),
+    doneAt: t.done ? t.doneAt || t.createdAt : null,
+    order: t.order ?? 0,
+    createdAt: t.createdAt ?? Date.now(),
+  }));
+  return { categories: categories.map(({ id, name, color }) => ({ id, name, color })), todos };
 }
+
+// ===== 상태 =====
+// 인터넷 저장소에서 받아 와서 채워져요
+let categories = [];
+let todos = [];
 
 let selectedDate = new Date();
 // 달력에 보이는 달 (그 달 1일)
@@ -118,6 +125,9 @@ const $sections = document.getElementById('sections');
 const $empty = document.getElementById('empty-message');
 const $catDialog = document.getElementById('cat-dialog');
 const $catList = document.getElementById('cat-list');
+const $loginButton = document.getElementById('login-button');
+const $loginError = document.getElementById('login-error');
+const $toast = document.getElementById('toast');
 
 const CHECK_PATH = 'M3.5 8.5l3 3 6-7';
 const CHECK_ICON = `<svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${CHECK_PATH}"/></svg>`;
@@ -133,6 +143,49 @@ function categoryColor(id) {
   const cat = findCategory(id);
   return safeColor(cat ? cat.color : UNCATEGORIZED_COLOR);
 }
+
+// ===== 저장 =====
+// 화면은 바로 바꾸고, 인터넷 저장은 뒤에서 해요. 실패하면 알려 줘요.
+function save(promise) {
+  promise.catch((err) => {
+    console.error(err);
+    showToast('저장하지 못했어요. 로그인 상태를 확인해 주세요.');
+  });
+}
+
+let toastTimer = null;
+function showToast(message) {
+  $toast.textContent = message;
+  $toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $toast.classList.remove('show'), 4000);
+}
+
+// 다른 기기에서 바뀐 내용이 들어오면 화면을 다시 그려요.
+// 단, 마우스를 누르고 있거나 글자를 입력하는 중이면 끝날 때까지 기다려요.
+// (그래야 누르던 버튼이 사라지거나 쓰던 글자가 끊기지 않아요)
+let pointerIsDown = false;
+let renderPending = false;
+
+function scheduleRender() {
+  const typing = document.activeElement?.matches?.('.add-input, .cat-name');
+  if (pointerIsDown || typing) {
+    renderPending = true;
+    return;
+  }
+  renderPending = false;
+  render();
+  if ($catDialog.open) renderCategoryList();
+}
+
+function flushRender() {
+  if (renderPending) setTimeout(() => renderPending && scheduleRender(), 0);
+}
+
+document.addEventListener('pointerdown', () => { pointerIsDown = true; }, true);
+document.addEventListener('pointerup', () => { pointerIsDown = false; flushRender(); }, true);
+document.addEventListener('pointercancel', () => { pointerIsDown = false; flushRender(); }, true);
+document.addEventListener('focusout', flushRender);
 
 // ===== 할 일 동작 =====
 // 할 일을 만들어 저장만 하고, 화면은 다시 그리지 않아요
@@ -150,7 +203,7 @@ function createTodo(title, categoryId) {
     createdAt: Date.now(),
   };
   todos.push(todo);
-  store.saveTodos(todos);
+  save(remote.addTodo(todo));
   return todo;
 }
 
@@ -164,31 +217,34 @@ function toggleTodo(id) {
   if (!todo) return;
   todo.done = !todo.done;
   todo.doneAt = todo.done ? Date.now() : null;
-  commit();
+  save(remote.updateTodo(id, { done: todo.done, doneAt: todo.doneAt }));
+  render();
 }
 
 function deleteTodo(id) {
   todos = todos.filter((t) => t.id !== id);
-  commit();
-}
-
-function commit() {
-  store.saveTodos(todos);
+  save(remote.deleteTodo(id));
   render();
 }
 
 // ===== 카테고리 동작 =====
 function commitCategories() {
-  store.saveCategories(categories);
   render();
   renderCategoryList();
+}
+
+function saveCategoryOrder() {
+  categories.forEach((c, i) => { c.order = i; });
+  save(remote.reorderCategories(categories.map((c) => c.id)));
 }
 
 function addCategory() {
   const used = new Set(categories.map((c) => c.color));
   const color = PALETTE.find((p) => !used.has(p)) || PALETTE[0];
-  const cat = { id: newId(), name: '새 카테고리', color };
+  const order = categories.length ? Math.max(...categories.map((c) => c.order ?? 0)) + 1 : 0;
+  const cat = { id: newId(), name: '새 카테고리', color, order };
   categories.push(cat);
+  save(remote.addCategory(cat));
   commitCategories();
   const input = $catList.querySelector(`[data-id="${cat.id}"] .cat-name`);
   if (input) {
@@ -203,7 +259,7 @@ function renameCategory(id, name) {
   const trimmed = name.trim();
   if (trimmed && trimmed !== cat.name) {
     cat.name = trimmed;
-    store.saveCategories(categories);
+    save(remote.updateCategory(id, { name: trimmed }));
     render();
   }
 }
@@ -213,6 +269,7 @@ function recolorCategory(id, color) {
   if (!cat) return;
   cat.color = color;
   pickingColorFor = null;
+  save(remote.updateCategory(id, { color }));
   commitCategories();
 }
 
@@ -228,6 +285,7 @@ function deleteCategory(id) {
   if (count) message += `\n이 카테고리의 할 일 ${count}개는 지워지지 않고 '미분류'로 옮겨져요.`;
   if (!confirm(message)) return;
   categories = categories.filter((c) => c.id !== id);
+  save(remote.deleteCategory(id));
   commitCategories();
 }
 
@@ -365,10 +423,19 @@ function renderDay() {
     sections.push(renderSection({ id: null, name: '미분류', color: UNCATEGORIZED_COLOR }, orphans, false));
   }
 
+  // 다시 그리기 전에 입력 중이던 글자를 기억해 두고, 사라질 입력줄은 표시해 둬요
+  // (사라지면서 blur가 일어나도 할 일이 또 추가되지 않게)
+  const oldInput = $sections.querySelector('.add-input');
+  const draft = oldInput ? oldInput.value : '';
+  $sections.querySelectorAll('.add-row').forEach((row) => { row.dataset.retired = '1'; });
+
   $sections.replaceChildren(...sections);
 
   const addInput = $sections.querySelector('.add-input');
-  if (addInput) addInput.focus();
+  if (addInput) {
+    addInput.value = draft;
+    addInput.focus();
+  }
 }
 
 function renderProgress() {
@@ -437,8 +504,7 @@ function renderAddRow(categoryId, list) {
       e.preventDefault();
       const title = input.value.trim();
       if (!title) return;
-      // 다시 그리면서 이 입력칸이 사라질 때 blur에서 또 추가되지 않도록 표시해 둬요
-      row.dataset.retired = '1';
+      input.value = '';
       addTodo(title, categoryId); // 입력칸은 열린 채로 다시 그려져요
     } else if (e.key === 'Escape') {
       input.value = '';
@@ -594,7 +660,7 @@ function startCategoryDrag(e, row) {
     const order = [...$catList.children].map((r) => r.dataset.id);
     if (order.some((id, i) => categories[i].id !== id)) {
       categories.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-      store.saveCategories(categories);
+      saveCategoryOrder();
       render();
     }
   };
@@ -611,6 +677,7 @@ function moveCategory(id, step) {
   if (from < 0 || to < 0 || to >= categories.length) return;
   const [cat] = categories.splice(from, 1);
   categories.splice(to, 0, cat);
+  saveCategoryOrder();
   commitCategories();
   const handle = $catList.querySelector(`[data-id="${id}"] .cat-handle`);
   if (handle) handle.focus();
@@ -633,4 +700,75 @@ $catDialog.addEventListener('click', (e) => {
   if (e.target === $catDialog) $catDialog.close();
 });
 
-render();
+// ===== 로그인 =====
+// 화면 상태: loading(불러오는 중) / login(로그인 화면) / app(할 일 화면)
+function showScreen(name) {
+  document.body.dataset.screen = name;
+}
+
+const LOGIN_ERRORS = {
+  'auth/popup-blocked': '로그인 창이 막혔어요. 브라우저에서 팝업을 허용한 뒤 다시 눌러 주세요.',
+  'auth/unauthorized-domain': '이 주소는 아직 로그인이 허용되지 않았어요. Firebase 설정에서 도메인을 추가해야 해요.',
+  'auth/network-request-failed': '인터넷 연결을 확인해 주세요.',
+  'permission-denied': '이 구글 계정으로는 사용할 수 없어요. 등록한 계정으로 로그인해 주세요.',
+};
+
+function showLoginError(err) {
+  console.error(err);
+  $loginError.textContent = LOGIN_ERRORS[err.code] || `문제가 생겼어요 (${err.code || err.message})`;
+}
+
+$loginButton.addEventListener('click', () => {
+  $loginError.textContent = '';
+  login().catch((err) => {
+    if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
+    showLoginError(err);
+  });
+});
+
+document.getElementById('logout').addEventListener('click', () => {
+  if (confirm('로그아웃할까요?')) logout();
+});
+
+let stopSync = null;
+
+if (!isConfigured) {
+  showScreen('login');
+  $loginButton.disabled = true;
+  $loginError.textContent = 'firebase-config.js에 Firebase 설정을 아직 넣지 않았어요.';
+} else {
+  watchAuth(async (user) => {
+    if (stopSync) {
+      stopSync();
+      stopSync = null;
+    }
+    if (!user) {
+      todos = [];
+      categories = [];
+      $catDialog.close();
+      showScreen('login');
+      return;
+    }
+
+    showScreen('loading');
+    useAccount(user.uid);
+    const local = localDataForSeed();
+    await seedIfEmpty(local.categories, local.todos);
+
+    let gotTodos = false;
+    let gotCategories = false;
+    const ready = () => {
+      if (!gotTodos || !gotCategories) return;
+      showScreen('app');
+      scheduleRender();
+    };
+    stopSync = subscribe({
+      onTodos: (list) => { todos = list; gotTodos = true; ready(); },
+      onCategories: (list) => { categories = list; gotCategories = true; ready(); },
+      onError: (err) => {
+        showLoginError(err);
+        logout();
+      },
+    });
+  });
+}

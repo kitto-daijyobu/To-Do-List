@@ -624,6 +624,122 @@ button.check:hover { border-color: var(--cat); }
 
 .cat-add:hover { background: #d6e3f3; }
 
+/* ===== 화면 전환: 불러오는 중 / 로그인 / 할 일 ===== */
+.loading-screen,
+.login-screen { display: none; }
+
+body[data-screen="loading"] .app,
+body[data-screen="login"] .app { display: none; }
+
+body[data-screen="loading"] .loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.loading-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--primary);
+  border-radius: 50%;
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 0.25; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+body[data-screen="login"] .login-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 24px 16px;
+}
+
+.login-card {
+  width: min(380px, 100%);
+  padding: 40px 28px 32px;
+  text-align: center;
+  background: var(--surface);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.login-clover { width: 56px; height: 56px; }
+
+.login-title {
+  margin: 14px 0 6px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.login-text {
+  margin: 0 0 24px;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.login-button {
+  width: 100%;
+  padding: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.login-button:hover { background: var(--primary-hover); }
+.login-button:disabled { background: #b7c5d6; cursor: default; }
+
+.login-error {
+  min-height: 1.5em;
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--danger);
+}
+
+.login-error:empty { margin: 0; min-height: 0; }
+
+.day-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* 아래에서 잠깐 나타나는 알림 */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 10;
+  max-width: calc(100% - 32px);
+  padding: 12px 18px;
+  font-size: 14px;
+  color: #fff;
+  background: #2b3a4d;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(31, 42, 55, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 /* ===== 휴대폰 화면 ===== */
 @media (max-width: 480px) {
   .app { padding-top: 20px; gap: 24px; }

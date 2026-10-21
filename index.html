@@ -8,7 +8,29 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-screen="loading">
+  <div class="loading-screen" aria-live="polite">
+    <span class="loading-dot"></span>
+    불러오는 중…
+  </div>
+
+  <div class="login-screen">
+    <div class="login-card">
+      <svg class="login-clover" viewBox="0 0 40 40" aria-hidden="true">
+        <g opacity="0.85">
+          <circle cx="13" cy="13" r="10.5" fill="#5B8DEF"/>
+          <circle cx="27" cy="13" r="10.5" fill="#8E7CE0"/>
+          <circle cx="27" cy="27" r="10.5" fill="#4DB6A0"/>
+          <circle cx="13" cy="27" r="10.5" fill="#F0A96B"/>
+        </g>
+      </svg>
+      <h1 class="login-title">나의 할 일</h1>
+      <p class="login-text">컴퓨터와 휴대폰에서 같은 목록을 보려면<br>구글 계정으로 로그인해 주세요.</p>
+      <button id="login-button" class="login-button" type="button">Google 계정으로 로그인</button>
+      <p id="login-error" class="login-error" role="alert"></p>
+    </div>
+  </div>
+
   <main class="app">
     <section class="calendar" aria-label="달력">
       <div class="cal-header">
@@ -31,7 +53,10 @@
       <header class="day-header">
         <div class="day-top">
           <p id="day-label" class="day-label"></p>
-          <button id="open-cats" class="text-button" type="button">카테고리 관리</button>
+          <div class="day-actions">
+            <button id="open-cats" class="text-button" type="button">카테고리 관리</button>
+            <button id="logout" class="text-button" type="button">로그아웃</button>
+          </div>
         </div>
         <h1 id="day-title" class="day-title"></h1>
         <div class="progress">
@@ -54,6 +79,8 @@
     <button id="cat-add" class="cat-add" type="button">+ 새 카테고리</button>
   </dialog>
 
-  <script src="app.js"></script>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
