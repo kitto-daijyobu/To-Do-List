@@ -122,6 +122,7 @@ const $catList = document.getElementById('cat-list');
 const CHECK_PATH = 'M3.5 8.5l3 3 6-7';
 const CHECK_ICON = `<svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${CHECK_PATH}"/></svg>`;
 const PLUS_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>';
+const GRIP_ICON = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.2"/><circle cx="10" cy="4" r="1.2"/><circle cx="6" cy="8" r="1.2"/><circle cx="10" cy="8" r="1.2"/><circle cx="6" cy="12" r="1.2"/><circle cx="10" cy="12" r="1.2"/></svg>';
 const TRASH_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>';
 
 function findCategory(id) {
@@ -408,15 +409,16 @@ function renderSection(cat, items, canAdd) {
   const list = document.createElement('ul');
   list.className = 'todo-list';
   list.append(...items.map(renderItem));
-  if (canAdd && addingCategoryId === cat.id) list.append(renderAddRow(cat.id));
 
   section.append(head, list);
+  if (canAdd && addingCategoryId === cat.id) section.append(renderAddRow(cat.id, list));
   return section;
 }
 
-function renderAddRow(categoryId) {
-  const li = document.createElement('li');
-  li.className = 'todo-item adding';
+// 새 할 일 입력줄 (흰 목록 칸 밖, 바로 아래에 나와요)
+function renderAddRow(categoryId, list) {
+  const row = document.createElement('div');
+  row.className = 'add-row';
 
   const ring = document.createElement('span');
   ring.className = 'check';
@@ -436,7 +438,7 @@ function renderAddRow(categoryId) {
       const title = input.value.trim();
       if (!title) return;
       // 다시 그리면서 이 입력칸이 사라질 때 blur에서 또 추가되지 않도록 표시해 둬요
-      li.dataset.retired = '1';
+      row.dataset.retired = '1';
       addTodo(title, categoryId); // 입력칸은 열린 채로 다시 그려져요
     } else if (e.key === 'Escape') {
       input.value = '';
@@ -447,17 +449,17 @@ function renderAddRow(categoryId) {
   // 입력칸 밖을 누르면: 적어 둔 게 있으면 추가하고 입력칸을 닫아요.
   // 목록 전체를 다시 그리지 않아야 방금 누른 버튼이 한 번에 눌려요.
   input.addEventListener('blur', () => {
-    if (li.dataset.retired || !input.isConnected || addingCategoryId !== categoryId) return;
+    if (row.dataset.retired || !input.isConnected || addingCategoryId !== categoryId) return;
     addingCategoryId = null;
     const title = input.value.trim();
-    if (title) li.replaceWith(renderItem(createTodo(title, categoryId)));
-    else li.remove();
+    if (title) list.append(renderItem(createTodo(title, categoryId)));
+    row.remove();
     renderCalendar();
     renderProgress();
   });
 
-  li.append(ring, input);
-  return li;
+  row.append(ring, input);
+  return row;
 }
 
 function renderItem(todo) {
@@ -497,6 +499,19 @@ function renderCategoryList() {
     const line = document.createElement('div');
     line.className = 'cat-row-line';
 
+    const handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = 'cat-handle';
+    handle.innerHTML = GRIP_ICON;
+    handle.setAttribute('aria-label', `${cat.name} 순서 바꾸기 (끌거나 위·아래 화살표 키)`);
+    handle.addEventListener('pointerdown', (e) => startCategoryDrag(e, li));
+    handle.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        moveCategory(cat.id, e.key === 'ArrowUp' ? -1 : 1);
+      }
+    });
+
     const swatch = document.createElement('button');
     swatch.type = 'button';
     swatch.className = 'cat-swatch';
@@ -528,7 +543,7 @@ function renderCategoryList() {
     del.setAttribute('aria-label', `${cat.name} 삭제`);
     del.addEventListener('click', () => deleteCategory(cat.id));
 
-    line.append(swatch, name, del);
+    line.append(handle, swatch, name, del);
     li.append(line);
 
     if (pickingColorFor === cat.id) {
@@ -548,6 +563,57 @@ function renderCategoryList() {
     return li;
   });
   $catList.replaceChildren(...rows);
+}
+
+// 손잡이를 누른 채 위아래로 끌면 줄이 따라 움직이고, 손을 떼면 그 순서로 저장해요
+function startCategoryDrag(e, row) {
+  e.preventDefault();
+  row.classList.add('dragging');
+  document.body.classList.add('is-dragging');
+
+  const onMove = (ev) => {
+    const others = [...$catList.children].filter((r) => r !== row);
+    const before = others.find((r) => {
+      const box = r.getBoundingClientRect();
+      return ev.clientY < box.top + box.height / 2;
+    });
+    if (before) {
+      if (row.nextElementSibling !== before) $catList.insertBefore(row, before);
+    } else if ($catList.lastElementChild !== row) {
+      $catList.append(row);
+    }
+  };
+
+  const onUp = () => {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
+    row.classList.remove('dragging');
+    document.body.classList.remove('is-dragging');
+
+    const order = [...$catList.children].map((r) => r.dataset.id);
+    if (order.some((id, i) => categories[i].id !== id)) {
+      categories.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+      store.saveCategories(categories);
+      render();
+    }
+  };
+
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onUp);
+}
+
+// 키보드로 한 칸씩 옮기기
+function moveCategory(id, step) {
+  const from = categories.findIndex((c) => c.id === id);
+  const to = from + step;
+  if (from < 0 || to < 0 || to >= categories.length) return;
+  const [cat] = categories.splice(from, 1);
+  categories.splice(to, 0, cat);
+  commitCategories();
+  const handle = $catList.querySelector(`[data-id="${id}"] .cat-handle`);
+  if (handle) handle.focus();
 }
 
 // ===== 시작 =====

@@ -421,9 +421,20 @@ button.check:hover { border-color: var(--cat); }
   background: #fbeeed;
 }
 
-/* 새 할 일 입력줄 */
-.todo-item.adding .check {
+/* 새 할 일 입력줄 (배경 없이 카테고리 색 밑줄만) */
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  margin: 4px 4px 0;
+  padding: 8px 12px;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--cat) 55%, transparent);
+}
+
+.add-row .check {
   border-style: dashed;
+  border-color: color-mix(in srgb, var(--cat) 60%, #c3cfdd);
   cursor: default;
 }
 
@@ -502,8 +513,43 @@ button.check:hover { border-color: var(--cat); }
 
 .cat-row {
   padding: 6px 0;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
+
+/* 끌고 있는 줄은 살짝 떠 보이게 */
+.cat-row.dragging {
+  position: relative;
+  z-index: 1;
+  border-radius: 12px;
+  border-bottom-color: transparent;
+  box-shadow: 0 6px 20px rgba(31, 42, 55, 0.14);
+}
+
+.is-dragging,
+.is-dragging * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+.cat-handle {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 32px;
+  padding: 0;
+  color: #b3bfce;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: grab;
+  touch-action: none; /* 휴대폰에서 끌 때 화면이 스크롤되지 않게 */
+  transition: color 0.15s, background 0.15s;
+}
+
+.cat-handle:hover { color: var(--text-muted); background: var(--bg); }
+.cat-handle svg { width: 16px; height: 16px; }
 
 .cat-row-line {
   display: flex;
@@ -549,7 +595,7 @@ button.check:hover { border-color: var(--cat); }
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 10px 0 6px 38px;
+  padding: 10px 0 6px 72px;
 }
 
 .palette-chip {
