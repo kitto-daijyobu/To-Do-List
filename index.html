@@ -131,6 +131,49 @@
     </div>
   </section>
 
+  <!-- ===== 타이머: 뽀모도로 / 공부 시간 측정 ===== -->
+  <section class="view" id="view-timer" aria-label="타이머">
+    <div class="view-inner">
+      <div class="segmented timer-modes" role="group" aria-label="타이머 종류">
+        <button class="seg on" type="button" data-mode="pomo">🍅 뽀모도로</button>
+        <button class="seg" type="button" data-mode="watch">⏱ 공부 시간 측정</button>
+      </div>
+
+      <div id="pomo-presets" class="chip-row timer-presets"></div>
+
+      <div class="timer-face">
+        <svg class="timer-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle class="ring-track" cx="120" cy="120" r="108"/>
+          <circle id="ring-bar" class="ring-bar" cx="120" cy="120" r="108"/>
+        </svg>
+        <div class="timer-center">
+          <p id="timer-phase" class="timer-phase"></p>
+          <p id="timer-time" class="timer-time" aria-live="off"></p>
+          <p id="timer-sub" class="timer-sub"></p>
+        </div>
+      </div>
+
+      <div class="timer-buttons">
+        <button id="timer-reset" class="text-button" type="button">초기화</button>
+        <button id="timer-main" class="primary-button timer-main" type="button">시작</button>
+        <button id="timer-skip" class="text-button" type="button">건너뛰기</button>
+      </div>
+
+      <p class="field-label timer-cat-label">무엇을 공부하나요?</p>
+      <div id="timer-cats" class="chip-row"></div>
+
+      <div class="study-card">
+        <div class="study-total">
+          <span>오늘 공부 시간</span>
+          <b id="study-today">0분</b>
+        </div>
+        <ul id="study-by-cat" class="study-cats"></ul>
+        <p class="field-label">최근 7일</p>
+        <div id="study-week" class="study-week"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== 개인정보 ===== -->
   <section class="view" id="view-me" aria-labelledby="me-title">
     <div class="view-inner">
@@ -199,6 +242,10 @@
     <button class="tab" type="button" data-tab="planner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
       <span>플래너</span>
+    </button>
+    <button class="tab" type="button" data-tab="timer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.5M9.5 3h5M12 3v3"/></svg>
+      <span>타이머</span>
     </button>
     <button class="tab" type="button" data-tab="me">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.8-3.6 3.9-5.8 7.5-5.8s6.7 2.2 7.5 5.8"/></svg>

@@ -1,7 +1,7 @@
 // 시험용 가짜 저장소: 진짜 Firebase 대신 메모리에만 저장해요 (미리보기 시험 전용)
 export const isConfigured = true;
 
-const data = { todos: new Map(), categories: new Map(), routines: new Map(), blocks: new Map(), templates: new Map() };
+const data = { todos: new Map(), categories: new Map(), routines: new Map(), blocks: new Map(), templates: new Map(), studyLogs: new Map() };
 const copyAll = (map) => [...map.values()].map((x) => JSON.parse(JSON.stringify(x)));
 const reactionStore = new Map(); // 주인 계정 → Map(id → 반응)
 const reactionWatchers = new Map(); // 주인 계정 → [콜백]
@@ -28,6 +28,7 @@ function emit() {
       l.onBlocks(blocks); l.onTemplates(templates);
       l.onProfile(data.profile ? JSON.parse(JSON.stringify(data.profile)) : null);
       l.onReactions(copyAll(reactionsOf('test-user')));
+      l.onStudyLogs(copyAll(data.studyLogs));
     }, 0);
   }
 }
@@ -69,6 +70,7 @@ export const remote = {
   saveTemplate: (t) => later(() => data.templates.set(t.id, JSON.parse(JSON.stringify(t)))),
   deleteTemplate: (id) => later(() => data.templates.delete(id)),
   saveProfile: (p) => later(() => { data.profile = JSON.parse(JSON.stringify(p)); }),
+  addStudyLog: (log) => later(() => data.studyLogs.set(log.id, { ...log })),
   reorderCategories: (ids) => later(() => ids.forEach((id, i) => data.categories.set(id, { ...data.categories.get(id), order: i }))),
 };
 

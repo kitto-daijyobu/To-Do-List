@@ -1235,6 +1235,112 @@ body.viewing-friend .check { cursor: default; }
 .bell-button .tab-badge { top: -6px; left: auto; right: -6px; }
 .archive-item.unread { background: var(--primary-soft); }
 
+/* ===== 타이머 ===== */
+body[data-screen="app"][data-tab="timer"] #view-timer { display: block; }
+
+#view-timer { --timer-color: var(--primary); }
+#view-timer.on-break { --timer-color: #4DB6A0; }
+
+.timer-modes { grid-template-columns: 1fr 1fr; margin-bottom: 14px; }
+.timer-presets { justify-content: center; margin-bottom: 8px; }
+.timer-presets[hidden] { display: none; }
+
+.timer-face {
+  position: relative;
+  width: min(280px, 78vw);
+  aspect-ratio: 1;
+  margin: 8px auto 16px;
+}
+
+.timer-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+
+.ring-track { fill: none; stroke: color-mix(in srgb, var(--timer-color) 12%, transparent); stroke-width: 12; }
+
+.ring-bar {
+  fill: none;
+  stroke: var(--timer-color);
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.25s linear, stroke 0.3s;
+}
+
+.timer-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+.timer-phase { margin: 0; font-size: 15px; font-weight: 700; color: var(--timer-color); }
+
+.timer-time {
+  margin: 2px 0;
+  font-size: clamp(40px, 13vw, 56px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.timer-sub { margin: 0; min-height: 1.4em; font-size: 14px; color: var(--text-muted); }
+
+.timer-buttons {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.timer-buttons .text-button { justify-self: center; padding: 8px 12px; white-space: nowrap; }
+.timer-buttons .text-button[hidden] { visibility: hidden; display: block; }
+.timer-main { min-width: 112px; padding: 14px 22px; font-size: 17px; white-space: nowrap; background: var(--timer-color); }
+
+.timer-cat-label { margin-bottom: 8px; }
+
+.study-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 16px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.study-total { display: flex; justify-content: space-between; align-items: baseline; }
+.study-total b { font-size: 22px; color: var(--primary); }
+
+.study-cats { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.study-cats:empty { display: none; }
+
+.study-row {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.study-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.study-bar { height: 8px; background: var(--bg); border-radius: 999px; overflow: hidden; }
+.study-fill { display: block; height: 100%; background: var(--cat); border-radius: 999px; }
+.study-sec { font-size: 13px; color: var(--text-muted); }
+
+.study-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  height: 130px;
+}
+
+.week-col { display: grid; grid-template-rows: auto 1fr auto; justify-items: center; gap: 4px; min-width: 0; }
+.week-val { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.week-track { display: flex; align-items: flex-end; width: 100%; max-width: 26px; }
+.week-bar { width: 100%; background: color-mix(in srgb, var(--primary) 35%, transparent); border-radius: 6px 6px 3px 3px; }
+.week-bar.today { background: var(--primary); }
+.week-day { font-size: 12px; color: var(--text-muted); }
+
 /* ===== 플래너 ===== */
 .planner-head {
   display: flex;

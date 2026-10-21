@@ -44,6 +44,7 @@ const routinesCol = () => collection(db, 'users', uid, 'routines');
 const blocksCol = () => collection(db, 'users', uid, 'planner');
 const templatesCol = () => collection(db, 'users', uid, 'plannerTemplates');
 const profileDoc = () => doc(db, 'users', uid, 'meta', 'profile');
+const studyCol = () => collection(db, 'users', uid, 'studyLogs');
 
 export function watchAuth(callback) {
   onAuthStateChanged(auth, callback);
@@ -62,8 +63,9 @@ export function useAccount(userId) {
 }
 
 // 할 일·카테고리가 바뀔 때마다 알려 줘요. 다른 기기에서 바꿔도 바로 알려 줘요.
-export function subscribe({ onTodos, onCategories, onRoutines, onBlocks, onTemplates, onProfile, onReactions, onError }) {
+export function subscribe({ onTodos, onCategories, onRoutines, onBlocks, onTemplates, onProfile, onReactions, onStudyLogs, onError }) {
   const stops = [
+    onSnapshot(studyCol(), (snap) => onStudyLogs(snap.docs.map((d) => d.data())), (err) => console.error(err)),
     // 내 할 일에 달린 이모지·댓글 (이건 실패해도 로그아웃시키지 않아요)
     onSnapshot(collection(db, 'users', uid, 'reactions'), (snap) => onReactions(snap.docs.map((d) => d.data())), (err) => console.error(err)),
     onSnapshot(profileDoc(), (snap) => onProfile(snap.exists() ? snap.data() : null), onError),
@@ -180,6 +182,7 @@ export const remote = {
   saveTemplate: (template) => setDoc(doc(templatesCol(), template.id), template),
   deleteTemplate: (id) => deleteDoc(doc(templatesCol(), id)),
   saveProfile: (profile) => setDoc(profileDoc(), profile),
+  addStudyLog: (log) => setDoc(doc(studyCol(), log.id), log),
   reorderCategories(ids) {
     const batch = writeBatch(db);
     ids.forEach((id, i) => batch.update(doc(categoriesCol(), id), { order: i }));

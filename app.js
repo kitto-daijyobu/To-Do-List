@@ -2105,6 +2105,330 @@ function deleteTemplate(id) {
   });
 }
 
+// ===== 타이머: 뽀모도로 / 공부 시간 측정 =====
+// 타이머 상태는 이 기기에만 저장해요 (시작한 시각을 기억해서, 앱을 껐다 켜도 시간이 맞아요)
+// 공부한 시간은 '공부 기록'으로 인터넷에 저장돼요: { date, start, end, seconds, categoryId, kind }
+const POMO_PRESETS = [[25, 5], [50, 10], [60, 10]];
+const TIMER_KEY = 'mytodo.timer';
+let studyLogs = [];
+let audioCtx = null;
+let wakeLock = null;
+
+const $timerTime = document.getElementById('timer-time');
+const $timerPhase = document.getElementById('timer-phase');
+const $timerSub = document.getElementById('timer-sub');
+const $ringBar = document.getElementById('ring-bar');
+const $timerMain = document.getElementById('timer-main');
+const $timerReset = document.getElementById('timer-reset');
+const $timerSkip = document.getElementById('timer-skip');
+const RING = 2 * Math.PI * 108;
+
+function defaultTimer() {
+  return { mode: 'pomo', preset: 0, phase: 'focus', running: false, startedAt: 0, elapsed: 0, cycles: 0, cyclesDate: '', categoryId: null };
+}
+
+function loadTimer() {
+  try {
+    return { ...defaultTimer(), ...JSON.parse(localStorage.getItem(TIMER_KEY) || '{}') };
+  } catch {
+    return defaultTimer();
+  }
+}
+
+let timer = loadTimer();
+
+function saveTimer() {
+  try { localStorage.setItem(TIMER_KEY, JSON.stringify(timer)); } catch { /* 저장 못 해도 괜찮아요 */ }
+}
+
+const timerElapsed = (now = Date.now()) => timer.elapsed + (timer.running ? now - timer.startedAt : 0);
+const phaseLength = () => POMO_PRESETS[timer.preset][timer.phase === 'focus' ? 0 : 1] * 60000;
+const counting = () => timer.mode === 'watch' || timer.phase === 'focus'; // 공부 시간으로 쌓이는 중인지
+
+function clock(ms, withHours = false) {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const two = (n) => String(n).padStart(2, '0');
+  return withHours || h ? `${h}:${two(m)}:${two(s)}` : `${two(m)}:${two(s)}`;
+}
+
+function durationWords(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h && m) return `${h}시간 ${m}분`;
+  if (h) return `${h}시간`;
+  return `${m}분`;
+}
+
+// 공부한 한 덩어리를 기록해요 (10초 미만은 버려요)
+function logRun(start, end) {
+  const seconds = Math.round((end - start) / 1000);
+  if (seconds < 10 || !currentUser) return;
+  const log = { id: newId(), date: toDateKey(new Date(start)), start, end, seconds, categoryId: timer.categoryId || null, kind: timer.mode };
+  studyLogs.push(log);
+  save(remote.addStudyLog(log));
+}
+
+// 끝났을 때 소리 + 진동
+function unlockAudio() {
+  try {
+    audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+  } catch { /* 소리를 못 내는 기기 */ }
+}
+
+function chime() {
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
+  if (!audioCtx) return;
+  [0, 0.35, 0.7].forEach((delay, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = i === 2 ? 1046 : 880;
+    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + delay + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + delay + 0.3);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(audioCtx.currentTime + delay);
+    osc.stop(audioCtx.currentTime + delay + 0.32);
+  });
+}
+
+// 도는 동안 화면이 꺼지지 않게
+async function keepAwake(on) {
+  try {
+    if (on && 'wakeLock' in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!on && wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch { /* 지원하지 않는 기기 */ }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && timer.running) keepAwake(true);
+});
+
+function startTimer() {
+  unlockAudio();
+  timer.running = true;
+  timer.startedAt = Date.now();
+  saveTimer();
+  keepAwake(true);
+  renderTimer();
+}
+
+function pauseTimer() {
+  if (!timer.running) return;
+  const now = Date.now();
+  if (counting()) logRun(timer.startedAt, now);
+  timer.elapsed += now - timer.startedAt;
+  timer.running = false;
+  saveTimer();
+  keepAwake(false);
+  renderTimer();
+  renderStudy();
+}
+
+function resetTimer() {
+  pauseTimer();
+  timer.elapsed = 0;
+  timer.phase = 'focus';
+  saveTimer();
+  renderTimer();
+}
+
+function skipPhase() {
+  const wasRunning = timer.running;
+  pauseTimer();
+  timer.phase = timer.phase === 'focus' ? 'break' : 'focus';
+  timer.elapsed = 0;
+  saveTimer();
+  if (wasRunning && timer.phase === 'break') startTimer();
+  else renderTimer();
+}
+
+function bumpCycles() {
+  const today = toDateKey(new Date());
+  if (timer.cyclesDate !== today) {
+    timer.cyclesDate = today;
+    timer.cycles = 0;
+  }
+  timer.cycles++;
+}
+
+// 0.25초마다: 뽀모도로 시간이 다 됐는지 확인하고 화면을 새로 그려요
+function tickTimer() {
+  if (timer.mode === 'pomo' && timer.running) {
+    const end = timer.startedAt + (phaseLength() - timer.elapsed);
+    if (Date.now() >= end) {
+      if (timer.phase === 'focus') {
+        // 집중 끝 → 기록하고 휴식 자동 시작
+        logRun(timer.startedAt, end);
+        bumpCycles();
+        timer.phase = 'break';
+        timer.elapsed = 0;
+        timer.startedAt = end;
+      } else {
+        // 휴식 끝 → 멈춰서 기다려요 (시작을 눌러야 다음 집중)
+        timer.phase = 'focus';
+        timer.elapsed = 0;
+        timer.running = false;
+        keepAwake(false);
+      }
+      chime();
+      saveTimer();
+      renderTimer();
+      renderStudy();
+    }
+  }
+  if (timer.running) {
+    document.title = `${$timerTime.textContent} · ${timer.mode === 'pomo' ? (timer.phase === 'focus' ? '집중' : '휴식') : '공부 중'}`;
+  } else if (document.title !== '나의 할 일') {
+    document.title = '나의 할 일';
+  }
+  if (document.body.dataset.tab === 'timer' || timer.running) renderTimerFace();
+}
+
+function renderTimerFace() {
+  const elapsed = timerElapsed();
+  let progress;
+  if (timer.mode === 'pomo') {
+    const len = phaseLength();
+    $timerTime.textContent = clock(len - elapsed);
+    $timerPhase.textContent = timer.phase === 'focus' ? '집중' : '휴식';
+    const today = toDateKey(new Date());
+    const cycles = timer.cyclesDate === today ? timer.cycles : 0;
+    $timerSub.textContent = cycles ? `오늘 🍅 ${cycles}번` : '';
+    progress = Math.min(1, elapsed / len);
+  } else {
+    $timerTime.textContent = clock(elapsed, true);
+    $timerPhase.textContent = timer.running ? '공부 중' : (elapsed ? '일시정지' : '준비');
+    $timerSub.textContent = '';
+    progress = (elapsed % 3600000) / 3600000; // 한 바퀴 = 1시간
+  }
+  $ringBar.style.strokeDasharray = `${RING}`;
+  $ringBar.style.strokeDashoffset = `${RING * (1 - progress)}`;
+  document.getElementById('view-timer').classList.toggle('on-break', timer.mode === 'pomo' && timer.phase === 'break');
+}
+
+function renderTimer() {
+  for (const b of document.querySelectorAll('.timer-modes .seg')) b.classList.toggle('on', b.dataset.mode === timer.mode);
+
+  // 뽀모도로 시간 고르기
+  const presets = document.getElementById('pomo-presets');
+  presets.hidden = timer.mode !== 'pomo';
+  presets.replaceChildren(...POMO_PRESETS.map(([focus, rest], i) => {
+    const chip = el('button', { type: 'button', className: 'chip-button' + (timer.preset === i ? ' on' : ''), textContent: `${focus}분 / ${rest}분` });
+    chip.addEventListener('click', () => {
+      if (timer.preset === i) return;
+      pauseTimer();
+      timer.preset = i;
+      timer.phase = 'focus';
+      timer.elapsed = 0;
+      saveTimer();
+      renderTimer();
+    });
+    return chip;
+  }));
+
+  // 무엇을 공부하나요? (내 카테고리)
+  const mine = viewing ? mineSaved.categories : categories;
+  const pick = (id) => {
+    if (timer.categoryId === id) return;
+    // 도는 중에 바꾸면 지금까지는 이전 카테고리로 기록하고 이어서 새로 재요
+    if (timer.running && counting()) {
+      const now = Date.now();
+      logRun(timer.startedAt, now);
+      timer.elapsed += now - timer.startedAt;
+      timer.startedAt = now;
+    }
+    timer.categoryId = id;
+    saveTimer();
+    renderTimer();
+    renderStudy();
+  };
+  const chips = mine.map((c) => {
+    const chip = el('button', { type: 'button', className: 'cat-chip' + (timer.categoryId === c.id ? ' on' : '') }, [el('span', { className: 'cat-dot' }), c.name]);
+    chip.style.setProperty('--cat', safeColor(c.color));
+    chip.addEventListener('click', () => pick(c.id));
+    return chip;
+  });
+  const none = el('button', { type: 'button', className: 'cat-chip' + (!timer.categoryId ? ' on' : ''), textContent: '선택 안 함' });
+  none.style.setProperty('--cat', UNCATEGORIZED_COLOR);
+  none.addEventListener('click', () => pick(null));
+  document.getElementById('timer-cats').replaceChildren(...chips, none);
+
+  $timerMain.textContent = timer.running ? '일시정지' : (timerElapsed() ? '계속' : '시작');
+  $timerSkip.hidden = timer.mode !== 'pomo';
+  $timerReset.textContent = timer.mode === 'watch' ? '끝내기' : '초기화';
+  renderTimerFace();
+}
+
+// 오늘 공부 시간 · 카테고리별 · 최근 7일
+function renderStudy() {
+  const now = Date.now();
+  const live = timer.running && counting() ? { date: toDateKey(new Date(timer.startedAt)), seconds: Math.round((now - timer.startedAt) / 1000), categoryId: timer.categoryId } : null;
+  const all = live ? [...studyLogs, live] : studyLogs;
+  const todayKey = toDateKey(new Date());
+  const today = all.filter((l) => l.date === todayKey);
+  document.getElementById('study-today').textContent = durationWords(today.reduce((s, l) => s + l.seconds, 0));
+
+  const mine = viewing ? mineSaved.categories : categories;
+  const byCat = new Map();
+  for (const l of today) byCat.set(l.categoryId || '', (byCat.get(l.categoryId || '') || 0) + l.seconds);
+  const max = Math.max(1, ...byCat.values());
+  document.getElementById('study-by-cat').replaceChildren(...[...byCat.entries()].sort((a, b) => b[1] - a[1]).map(([id, sec]) => {
+    const cat = mine.find((c) => c.id === id);
+    const row = el('li', { className: 'study-row' }, [
+      el('span', { className: 'study-name', textContent: cat ? cat.name : '선택 안 함' }),
+      el('span', { className: 'study-bar' }, [el('span', { className: 'study-fill' })]),
+      el('span', { className: 'study-sec', textContent: durationWords(sec) }),
+    ]);
+    row.style.setProperty('--cat', cat ? safeColor(cat.color) : UNCATEGORIZED_COLOR);
+    row.querySelector('.study-fill').style.width = `${(sec / max) * 100}%`;
+    return row;
+  }));
+
+  const days = Array.from({ length: 7 }, (_, i) => addDays(new Date(), i - 6));
+  const totals = days.map((d) => all.filter((l) => l.date === toDateKey(d)).reduce((s, l) => s + l.seconds, 0));
+  const weekMax = Math.max(1, ...totals);
+  document.getElementById('study-week').replaceChildren(...days.map((d, i) => {
+    const bar = el('span', { className: 'week-bar' + (i === 6 ? ' today' : '') });
+    bar.style.height = `${Math.max(totals[i] ? 6 : 2, (totals[i] / weekMax) * 100)}%`;
+    const col = el('div', { className: 'week-col' }, [
+      el('span', { className: 'week-val', textContent: totals[i] ? durationWords(totals[i]).replace('시간 ', 'h').replace('시간', 'h').replace('분', 'm') : '' }),
+      el('span', { className: 'week-track' }, [bar]),
+      el('span', { className: 'week-day', textContent: i === 6 ? '오늘' : WEEKDAYS[d.getDay()] }),
+    ]);
+    col.setAttribute('aria-label', `${formatTitle(d)} ${durationWords(totals[i])}`);
+    return col;
+  }));
+}
+
+for (const b of document.querySelectorAll('.timer-modes .seg')) {
+  b.addEventListener('click', () => {
+    if (timer.mode === b.dataset.mode) return;
+    resetTimer();
+    timer.mode = b.dataset.mode;
+    saveTimer();
+    renderTimer();
+  });
+}
+$timerMain.addEventListener('click', () => (timer.running ? pauseTimer() : startTimer()));
+$timerReset.addEventListener('click', resetTimer);
+$timerSkip.addEventListener('click', skipPhase);
+
+let studyTick = 0;
+setInterval(() => {
+  tickTimer();
+  // 1초마다 오늘 공부 시간도 새로
+  if (++studyTick % 4 === 0 && document.body.dataset.tab === 'timer' && timer.running) renderStudy();
+}, 250);
+
 // ===== 보관함 =====
 function renderArchive() {
   const items = todos
@@ -2415,6 +2739,10 @@ function showTab(name) {
   for (const tab of document.querySelectorAll('.tab')) {
     if (tab.dataset.tab === name) tab.setAttribute('aria-current', 'page');
     else tab.removeAttribute('aria-current');
+  }
+  if (name === 'timer') {
+    renderTimer();
+    renderStudy();
   }
   window.scrollTo(0, 0);
 }
@@ -3211,6 +3539,7 @@ if (!isConfigured) {
       stopFriend = null;
       stopWatchingFriendReactions();
       myReactions = [];
+      studyLogs = [];
       for (const dialog of [$reactDialog, $noticeDialog]) dialog.close();
       viewing = null;
       mineSaved = null;
@@ -3251,6 +3580,10 @@ if (!isConfigured) {
       onRoutines: (list) => { if (viewing) mineSaved.routines = list; else routines = list; gotRoutines = true; ready(); },
       onBlocks: (list) => { blocks = list; gotBlocks = true; ready(); },
       onTemplates: (list) => { plannerTemplates = list; gotTemplates = true; ready(); },
+      onStudyLogs: (list) => {
+        studyLogs = list;
+        if (document.body.dataset.tab === 'timer') renderStudy();
+      },
       onReactions: (list) => {
         myReactions = list;
         list.forEach((r) => { if (r.from !== user.uid) watchPerson(r.from); });
