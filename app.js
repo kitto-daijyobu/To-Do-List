@@ -750,6 +750,36 @@ $catDialog.addEventListener('click', (e) => {
   if (e.target === $catDialog) $catDialog.close();
 });
 
+// ===== 앱처럼 설치하기 =====
+// 오프라인 도우미를 등록해요 (인터넷이 끊겨도 앱이 열리게)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch((err) => console.error(err));
+}
+
+// 컴퓨터 크롬·갤럭시에서는 설치할 수 있을 때 "앱 설치" 버튼이 나타나요
+// (아이폰은 이 기능이 없어서 사파리의 "홈 화면에 추가"로 설치해요)
+const $installButton = document.getElementById('install-app');
+let installPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  $installButton.hidden = false;
+});
+
+$installButton.addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+  $installButton.hidden = true;
+});
+
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  $installButton.hidden = true;
+});
+
 // ===== 로그인 =====
 // 화면 상태: loading(불러오는 중) / login(로그인 화면) / app(할 일 화면)
 function showScreen(name) {
