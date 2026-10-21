@@ -29,7 +29,10 @@
 
     <section class="day">
       <header class="day-header">
-        <p id="day-label" class="day-label"></p>
+        <div class="day-top">
+          <p id="day-label" class="day-label"></p>
+          <button id="open-cats" class="text-button" type="button">카테고리 관리</button>
+        </div>
         <h1 id="day-title" class="day-title"></h1>
         <div class="progress">
           <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
@@ -37,15 +40,19 @@
         </div>
       </header>
 
-      <form id="add-form" class="add-form" autocomplete="off">
-        <input id="add-input" class="add-input" type="text" placeholder="할 일을 입력하세요" maxlength="200" aria-label="새 할 일">
-        <button class="add-button" type="submit" aria-label="추가">추가</button>
-      </form>
-
-      <ul id="todo-list" class="todo-list"></ul>
-      <p id="empty-message" class="empty-message">아직 할 일이 없어요.<br>위 칸에 입력하고 <b>추가</b>를 눌러 보세요.</p>
+      <div id="sections" class="sections"></div>
+      <p id="empty-message" class="empty-message">카테고리 이름을 눌러 할 일을 추가해 보세요.</p>
     </section>
   </main>
+
+  <dialog id="cat-dialog" class="sheet" aria-labelledby="cat-dialog-title">
+    <div class="sheet-head">
+      <h2 id="cat-dialog-title">카테고리 관리</h2>
+      <button id="cat-close" class="icon-button" type="button" aria-label="닫기">×</button>
+    </div>
+    <ul id="cat-list" class="cat-list"></ul>
+    <button id="cat-add" class="cat-add" type="button">+ 새 카테고리</button>
+  </dialog>
 
   <script src="app.js"></script>
 </body>
