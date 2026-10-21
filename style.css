@@ -1123,21 +1123,24 @@ body[data-screen="login"] .login-screen {
   user-select: none;
 }
 
+/* 끌고 있는 할 일: 손가락을 따라 살짝 떠 있어요 */
 .todo-item.dragging {
-  position: relative;
-  z-index: 2;
+  position: fixed;
+  z-index: 50;
+  list-style: none;
+  pointer-events: none;
   background: var(--surface);
-  box-shadow: 0 8px 24px rgba(31, 42, 55, 0.16);
+  box-shadow: 0 10px 28px rgba(31, 42, 55, 0.18);
+  transform: scale(1.02);
 }
 
 .todo-item.dragging .check { border-color: var(--cat); }
 
-/* 끄는 동안엔 비어 있는 카테고리에도 놓을 자리가 보여요 */
-body.dragging-todo .todo-list:empty {
-  display: block;
-  min-height: 40px;
-  border: 1.5px dashed color-mix(in srgb, var(--cat) 45%, transparent);
+/* 놓일 자리 (보이지 않는 빈칸) */
+.drop-gap {
+  list-style: none;
   border-radius: 10px;
+  background: color-mix(in srgb, var(--cat) 8%, transparent);
 }
 
 /* ===== 여러 개 선택 ===== */

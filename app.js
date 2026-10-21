@@ -214,7 +214,7 @@ let renderPending = false;
 
 function scheduleRender() {
   const typing = document.activeElement?.matches?.('.add-input, .cat-name, .edit-input');
-  if (pointerIsDown || typing) {
+  if (pointerIsDown || typing || dropping) {
     renderPending = true;
     return;
   }
@@ -757,6 +757,7 @@ function renderItem(todo) {
 // 컴퓨터: 누른 채 조금 움직이면 시작 / 휴대폰: 꾹 누르고(0.35초) 있다가 끌기
 // 다른 카테고리 위에 놓으면 그 카테고리로 바뀌어요
 let todoDrag = null;
+let dropping = false; // 놓는 애니메이션 중에는 화면을 다시 그리지 않아요
 let suppressClick = false;
 
 function pressTodo(e, li) {
@@ -794,65 +795,106 @@ function pressTodo(e, li) {
   document.addEventListener('pointercancel', cleanup);
 }
 
+// 끄는 동안: 할 일은 손가락을 그대로 따라 떠다니고,
+// 원래 자리에는 같은 크기의 빈자리(gap)가 생겨서 놓일 곳으로 스르륵 움직여요
 function beginTodoDrag(li, y) {
-  todoDrag = { li };
+  const box = li.getBoundingClientRect();
+  const gap = document.createElement('li');
+  gap.className = 'drop-gap';
+  gap.style.height = `${box.height}px`;
+  li.replaceWith(gap);
+
   li.classList.add('dragging');
-  document.body.classList.add('dragging-todo', 'is-dragging');
-  placeDraggedTodo(y);
+  li.style.setProperty('--cat', getComputedStyle(gap).getPropertyValue('--cat'));
+  Object.assign(li.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px` });
+  document.body.append(li);
+
+  todoDrag = { li, gap, offset: y - box.top, lastY: y };
+  document.body.classList.add('is-dragging');
   document.addEventListener('pointermove', onTodoDragMove);
   document.addEventListener('pointerup', endTodoDrag);
   document.addEventListener('pointercancel', endTodoDrag);
 }
 
-// 손가락/마우스 높이(y)에 맞춰 끌고 있는 줄을 그 자리로 옮겨요
-function placeDraggedTodo(y) {
-  const { li } = todoDrag;
+// 다른 줄들이 새 자리로 부드럽게 미끄러지게 (움직이기 전 위치 → 후 위치)
+function animateShift(change) {
+  const els = [...$sections.querySelectorAll('.todo-item, .cat-head, .add-row')];
+  const before = new Map(els.map((el) => [el, el.getBoundingClientRect().top]));
+  change();
+  for (const el of els) {
+    const dy = before.get(el) - el.getBoundingClientRect().top;
+    if (!dy) continue;
+    el.style.transition = 'none';
+    el.style.transform = `translateY(${dy}px)`;
+    requestAnimationFrame(() => {
+      el.style.transition = 'transform 0.18s ease';
+      el.style.transform = '';
+    });
+  }
+}
+
+// 손가락 높이(y)에 맞춰 빈자리를 옮겨요 (다른 카테고리 위면 그 카테고리로)
+function placeGap(y) {
+  const { li, gap } = todoDrag;
   const sections = [...$sections.querySelectorAll('.cat-section[data-cat-id]')];
   if (!sections.length) return;
   let target = sections[0];
   for (const s of sections) if (s.getBoundingClientRect().top <= y) target = s;
 
-  // 끌고 있는 줄의 색을 놓일 카테고리 색으로 미리 보여 줘요
+  // 끌고 있는 할 일의 색을 놓일 카테고리 색으로 미리 보여 줘요
   li.style.setProperty('--cat', target.style.getPropertyValue('--cat'));
 
   const list = target.querySelector('.todo-list');
-  const others = [...list.children].filter((x) => x !== li && x.classList.contains('todo-item'));
-  const before = others.find((x) => {
-    const box = x.getBoundingClientRect();
-    return y < box.top + box.height / 2;
-  });
-  if (before) {
-    if (li.nextElementSibling !== before) list.insertBefore(li, before);
-  } else if (list.lastElementChild !== li) {
-    list.append(li);
-  }
+  const items = [...list.querySelectorAll('.todo-item')];
+  const before = items.find((x) => {
+    const b = x.getBoundingClientRect();
+    return y < b.top + b.height / 2;
+  }) || null;
+  if (gap.parentElement === list && gap.nextElementSibling === before) return;
+  animateShift(() => list.insertBefore(gap, before));
 }
 
 function onTodoDragMove(e) {
   if (!todoDrag) return;
   e.preventDefault();
-  placeDraggedTodo(e.clientY);
+  todoDrag.lastY = e.clientY;
+  todoDrag.li.style.top = `${e.clientY - todoDrag.offset}px`;
+  placeGap(e.clientY);
   // 화면 위·아래 끝으로 끌면 저절로 스크롤
-  if (e.clientY < 70) window.scrollBy(0, -14);
-  else if (e.clientY > window.innerHeight - 90) window.scrollBy(0, 14);
+  if (e.clientY < 70) window.scrollBy(0, -12);
+  else if (e.clientY > window.innerHeight - 90) window.scrollBy(0, 12);
 }
 
 function endTodoDrag() {
   if (!todoDrag) return;
-  const { li } = todoDrag;
+  const { li, gap } = todoDrag;
   todoDrag = null;
   document.removeEventListener('pointermove', onTodoDragMove);
   document.removeEventListener('pointerup', endTodoDrag);
   document.removeEventListener('pointercancel', endTodoDrag);
-  li.classList.remove('dragging');
-  li.style.removeProperty('--cat');
-  document.body.classList.remove('dragging-todo', 'is-dragging');
+  document.body.classList.remove('is-dragging');
 
-  // 끌기가 끝난 직후의 '클릭'(체크·이름 고치기)은 무시해요
+  // 끌기가 끝난 직후의 '클릭'(체크·메뉴)은 무시해요
   suppressClick = true;
   setTimeout(() => { suppressClick = false; }, 0);
 
-  // 화면에 놓인 순서 그대로 순서 번호와 카테고리를 저장해요
+  // 빈자리로 쏙 들어가는 모습을 보여 준 뒤 저장해요
+  dropping = true;
+  const dest = gap.getBoundingClientRect();
+  li.style.transition = 'top 0.15s ease, left 0.15s ease';
+  Object.assign(li.style, { top: `${dest.top}px`, left: `${dest.left}px` });
+  setTimeout(() => {
+    li.classList.remove('dragging');
+    li.removeAttribute('style');
+    gap.replaceWith(li);
+    dropping = false;
+    saveTodoOrder(li);
+    flushRender();
+  }, 150);
+}
+
+// 화면에 놓인 순서 그대로 순서 번호와 카테고리를 저장해요
+function saveTodoOrder(li) {
   let order = 0;
   for (const section of $sections.querySelectorAll('.cat-section')) {
     const catId = section.dataset.catId;
