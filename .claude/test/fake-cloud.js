@@ -71,6 +71,10 @@ export const remote = {
   deleteTemplate: (id) => later(() => data.templates.delete(id)),
   saveProfile: (p) => later(() => { data.profile = JSON.parse(JSON.stringify(p)); }),
   addStudyLog: (log) => later(() => data.studyLogs.set(log.id, { ...log })),
+  savePushSub: (id, sub) => later(() => { (data.pushSubs ||= new Map()).set(id, sub); }),
+  deletePushSub: (id) => later(() => data.pushSubs?.delete(id)),
+  setPushJob: (id, job) => later(() => { (data.pushJobs ||= new Map()).set(id, { ...job, from: 'test-user' }); }),
+  deletePushJob: (id) => later(() => data.pushJobs?.delete(id)),
   reorderCategories: (ids) => later(() => ids.forEach((id, i) => data.categories.set(id, { ...data.categories.get(id), order: i }))),
 };
 

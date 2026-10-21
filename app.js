@@ -9,6 +9,7 @@ import {
   remote,
   social,
 } from './cloud.js';
+import { PUSH } from './push-config.js';
 
 // ===== 예전 저장 위치 =====
 // 1~3단계에서는 이 브라우저 안에만 저장했어요.
@@ -2139,6 +2140,7 @@ let timer = loadTimer();
 
 function saveTimer() {
   try { localStorage.setItem(TIMER_KEY, JSON.stringify(timer)); } catch { /* 저장 못 해도 괜찮아요 */ }
+  scheduleTimerPush(); // 끝나는 시각 알림도 다시 맞춰요
 }
 
 const timerElapsed = (now = Date.now()) => timer.elapsed + (timer.running ? now - timer.startedAt : 0);
@@ -2744,6 +2746,7 @@ function showTab(name) {
     renderTimer();
     renderStudy();
   }
+  if (name === 'me') renderPushState();
   window.scrollTo(0, 0);
 }
 
@@ -3270,6 +3273,7 @@ function addReaction(fields) {
   const r = { id: newId(), targetKey: reactTarget.key, date: reactTarget.date, from: currentUser.uid, createdAt: Date.now(), ...fields };
   reactionsNow().push(r);
   save(social.addReaction(reactionOwner(), r));
+  notifyReaction(reactionOwner(), r, reactTarget.title);
   renderReactions();
   render();
 }
@@ -3442,6 +3446,138 @@ function stopWatchingFriendReactions() {
   friendReactions = [];
 }
 
+// ===== 🔔 알림 받기 (무료 알림 서버) =====
+// 이 기기의 '알림 주소'를 저장해 두면, 알림 서버가 그 주소로 알림을 보내요
+// 보낼 알림은 pushJobs에 적어 두고, 알림 서버가 1분마다(또는 바로) 가져가서 보내요
+const $pushState = document.getElementById('push-state');
+let pushOn = false;
+
+const pushReady = () => Boolean(PUSH.workerUrl);
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+function keyBytes(base64url) {
+  const b64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(b64 + '==='.slice((b64.length + 3) % 4)), (c) => c.charCodeAt(0));
+}
+
+// 알림 주소마다 짧은 이름 (같은 기기가 두 번 저장되지 않게)
+async function subId(endpoint) {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(endpoint));
+  return [...new Uint8Array(hash)].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// 알림 관련 저장은 실패해도 조용히 (이미 보낸 알림을 지우려다 실패하는 건 괜찮아요)
+const quiet = (promise) => promise.catch((err) => console.warn('알림:', err?.code || err));
+
+async function renderPushState() {
+  if (!pushReady()) {
+    $pushState.textContent = '준비 중';
+    return;
+  }
+  if (!pushSupported()) {
+    $pushState.textContent = isIOS() && !isStandalone() ? '홈 화면 앱에서 가능' : '이 기기는 안 돼요';
+    return;
+  }
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = reg && (await reg.pushManager.getSubscription());
+  pushOn = Boolean(sub) && Notification.permission === 'granted';
+  $pushState.textContent = pushOn ? '켜짐' : '꺼짐';
+  $pushState.classList.toggle('on', pushOn);
+}
+
+async function togglePush() {
+  if (!pushReady()) {
+    showToast('알림 서버를 아직 연결하지 않았어요');
+    return;
+  }
+  if (!pushSupported()) {
+    showToast(isIOS() && !isStandalone()
+      ? '아이폰은 사파리에서 "홈 화면에 추가"한 앱에서만 알림을 받을 수 있어요'
+      : '이 브라우저는 알림을 지원하지 않아요');
+    return;
+  }
+  try {
+    if (pushOn) {
+      // 끄기
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sub = reg && (await reg.pushManager.getSubscription());
+      if (sub) {
+        quiet(remote.deletePushSub(await subId(sub.endpoint)));
+        await sub.unsubscribe();
+      }
+    } else {
+      // 켜기: 허용 묻기는 버튼을 누른 바로 그 순간에 해야 아이폰에서 잘 돼요
+      const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+      if (permission !== 'granted') {
+        showToast('알림이 막혀 있어요. 폰 설정에서 이 앱의 알림을 허용해 주세요');
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const sub = (await reg.pushManager.getSubscription())
+        || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(PUSH.vapidPublicKey) }));
+      const json = sub.toJSON();
+      await remote.savePushSub(await subId(sub.endpoint), {
+        endpoint: json.endpoint,
+        p256dh: json.keys.p256dh,
+        auth: json.keys.auth,
+        createdAt: Date.now(),
+        device: navigator.userAgent.slice(0, 120),
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('알림 설정을 바꾸지 못했어요');
+  }
+  renderPushState();
+}
+
+// 알림 서버에 "지금 확인해 줘" (친구 반응을 바로 보내려고)
+function flushPush() {
+  if (pushReady()) fetch(`${PUSH.workerUrl.replace(/\/$/, '')}/flush`, { method: 'POST' }).catch(() => {});
+}
+
+// 뽀모도로가 끝나는 시각에 알림 예약: 집중 끝(timer_), 그 뒤 휴식 끝(timer2_)
+// (휴식은 자동으로 시작되니까, 폰이 잠겨 있어도 두 알림이 다 오도록 미리 둘 다 예약해요)
+function scheduleTimerPush() {
+  if (!pushReady() || !currentUser) return;
+  const me = currentUser.uid;
+  const focusId = `timer_${me}`;
+  const breakId = `timer2_${me}`;
+  const now = Date.now();
+  const [focusMin, breakMin] = POMO_PRESETS[timer.preset];
+  const jobs = {};
+  if (timer.mode === 'pomo' && timer.running) {
+    const phaseEnd = Math.round(timer.startedAt + (phaseLength() - timer.elapsed));
+    if (timer.phase === 'focus') {
+      jobs[focusId] = { at: phaseEnd, title: '집중 끝! 🍅', body: `수고했어요. ${breakMin}분 쉬어요.` };
+      jobs[breakId] = { at: phaseEnd + breakMin * 60000, title: '휴식 끝!', body: `다시 ${focusMin}분 집중해 볼까요? 앱에서 시작을 눌러 주세요.` };
+    } else {
+      jobs[breakId] = { at: phaseEnd, title: '휴식 끝!', body: `다시 ${focusMin}분 집중해 볼까요? 앱에서 시작을 눌러 주세요.` };
+    }
+  }
+  for (const id of [focusId, breakId]) {
+    const job = jobs[id];
+    // 이미 지난 시각은 예약하지 않아요 (같은 알림이 두 번 가지 않게)
+    if (job && job.at > now) quiet(remote.setPushJob(id, { ...job, to: me, tag: 'timer' }));
+    else quiet(remote.deletePushJob(id));
+  }
+}
+
+// 친구 할 일에 반응하면 그 친구에게 알림
+function notifyReaction(ownerUid, reaction, todoTitle) {
+  if (!pushReady() || ownerUid === currentUser.uid) return;
+  const name = profileView().nickname.slice(0, 20);
+  const what = reaction.emoji ? `${reaction.emoji} ` : '💬 ';
+  const body = `${what}${reaction.text ? reaction.text : todoTitle}`.slice(0, 200);
+  remote.setPushJob(newId(), { to: ownerUid, at: Date.now(), title: `${name}님이 반응했어요`, body, tag: 'reaction' })
+    .then(flushPush)
+    .catch((err) => console.warn('알림:', err?.code || err));
+}
+
+document.getElementById('push-toggle').addEventListener('click', togglePush);
+
 document.getElementById('open-notices').addEventListener('click', openNotices);
 document.getElementById('notice-close').addEventListener('click', () => $noticeDialog.close());
 document.getElementById('react-close').addEventListener('click', () => $reactDialog.close());
@@ -3559,6 +3695,7 @@ if (!isConfigured) {
     useAccount(user.uid);
     currentUser = user;
     renderProfile();
+    renderPushState();
     const local = localDataForSeed();
     await seedIfEmpty(local.categories, local.todos);
 

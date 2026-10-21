@@ -5,7 +5,7 @@ $html = [System.IO.File]::ReadAllText((Join-Path $root 'index.html'), [System.Te
 $inject = @'
 <head>
   <base href="/">
-  <script type="importmap">{ "imports": { "/cloud.js": "/.claude/test/fake-cloud.js" } }</script>
+  <script type="importmap">{ "imports": { "/cloud.js": "/.claude/test/fake-cloud.js", "/push-config.js": "/.claude/test/fake-push-config.js" } }</script>
 '@
 $html = $html.Replace('<head>', $inject)
 $out = Join-Path $PSScriptRoot 'index.html'

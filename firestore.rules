@@ -40,6 +40,22 @@ service cloud.firestore {
       allow delete: if signedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
     }
 
+    // 보낼 알림: 나 자신(타이머) 또는 내가 보는 친구(반응)에게만. 알림 서버가 가져가서 보내고 지워요
+    match /pushJobs/{id} {
+      function validJob() {
+        let d = request.resource.data;
+        return d.from == request.auth.uid
+          && (d.to == request.auth.uid || follows(d.to))
+          && d.at is int
+          && d.title is string && d.title.size() <= 60
+          && d.body is string && d.body.size() <= 200
+          && (!id.matches('timer.*') || id == 'timer_' + request.auth.uid || id == 'timer2_' + request.auth.uid);
+      }
+      allow create: if signedIn() && validJob();
+      allow update: if signedIn() && resource.data.from == request.auth.uid && validJob();
+      allow delete: if signedIn() && resource.data.from == request.auth.uid;
+    }
+
     match /users/{uid} {
       // 내 데이터는 나만 전부 읽고 쓰기
       match /{document=**} {

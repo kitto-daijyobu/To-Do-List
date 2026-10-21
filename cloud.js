@@ -183,6 +183,11 @@ export const remote = {
   deleteTemplate: (id) => deleteDoc(doc(templatesCol(), id)),
   saveProfile: (profile) => setDoc(profileDoc(), profile),
   addStudyLog: (log) => setDoc(doc(studyCol(), log.id), log),
+  // 알림: 이 기기의 알림 주소 / 보낼 알림 (알림 서버가 1분마다 가져가요)
+  savePushSub: (id, sub) => setDoc(doc(db, 'users', uid, 'pushSubs', id), sub),
+  deletePushSub: (id) => deleteDoc(doc(db, 'users', uid, 'pushSubs', id)),
+  setPushJob: (id, job) => setDoc(doc(db, 'pushJobs', id), { ...job, from: uid }),
+  deletePushJob: (id) => deleteDoc(doc(db, 'pushJobs', id)),
   reorderCategories(ids) {
     const batch = writeBatch(db);
     ids.forEach((id, i) => batch.update(doc(categoriesCol(), id), { order: i }));

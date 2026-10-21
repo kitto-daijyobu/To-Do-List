@@ -2069,6 +2069,8 @@ body[data-screen="app"][data-tab="me"] #view-me { display: block; }
 .settings-item:hover { background: var(--bg); }
 .settings-item.danger { color: var(--danger); }
 
+.soon-badge.on { color: #fff; background: var(--primary); }
+
 .soon-badge {
   padding: 3px 8px;
   font-size: 12px;
