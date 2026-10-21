@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
-<body data-screen="loading">
+<body data-screen="loading" data-tab="home">
   <div class="loading-screen" aria-live="polite">
     <span class="loading-dot"></span>
     불러오는 중…
@@ -40,7 +40,8 @@
     </div>
   </div>
 
-  <main class="app">
+  <!-- ===== 홈: 달력 + 할 일 ===== -->
+  <main class="app" id="view-home">
     <section class="calendar" aria-label="달력">
       <div class="cal-header">
         <button id="cal-prev" class="cal-nav" type="button" aria-label="이전 달">
@@ -63,10 +64,9 @@
         <div class="day-top">
           <p id="day-label" class="day-label"></p>
           <div class="day-actions">
-            <button id="install-app" class="text-button install-button" type="button" hidden>앱 설치</button>
+            <button id="start-select" class="text-button" type="button">선택</button>
             <button id="open-archive" class="text-button" type="button">보관함</button>
             <button id="open-cats" class="text-button" type="button">카테고리 관리</button>
-            <button id="logout" class="text-button" type="button">로그아웃</button>
           </div>
         </div>
         <h1 id="day-title" class="day-title"></h1>
@@ -74,12 +74,83 @@
           <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
           <span id="progress-text" class="progress-text"></span>
         </div>
+        <button id="postpone-undone" class="postpone-button" type="button" hidden></button>
       </header>
 
       <div id="sections" class="sections"></div>
       <p id="empty-message" class="empty-message">카테고리 이름을 눌러 할 일을 추가해 보세요.</p>
     </section>
   </main>
+
+  <!-- ===== 플래너 (7-4단계에서 채워요) ===== -->
+  <section class="view" id="view-planner" aria-labelledby="planner-title">
+    <div class="view-inner">
+      <h1 id="planner-title" class="view-title">플래너</h1>
+      <div class="soon-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        <p class="soon-title">시간대별 하루 계획</p>
+        <p class="soon-text">8:00–9:20 아침 운동처럼 시간을 정해서<br>하루를 계획하는 화면이 여기에 생겨요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 개인정보 ===== -->
+  <section class="view" id="view-me" aria-labelledby="me-title">
+    <div class="view-inner">
+      <h1 id="me-title" class="view-title">개인정보</h1>
+
+      <div class="profile-card">
+        <div class="profile-photo" id="profile-photo" aria-hidden="true"></div>
+        <div class="profile-text">
+          <p id="profile-name" class="profile-name"></p>
+          <p id="profile-email" class="profile-email"></p>
+        </div>
+      </div>
+
+      <ul class="settings-list">
+        <li><button class="settings-item" type="button" data-soon="알림 설정">알림 설정<span class="soon-badge">준비 중</span></button></li>
+        <li><button class="settings-item" type="button" data-soon="프로필 설정">프로필 설정<span class="soon-badge">준비 중</span></button></li>
+        <li><button class="settings-item" type="button" data-soon="테마 설정">테마 설정<span class="soon-badge">준비 중</span></button></li>
+      </ul>
+
+      <ul class="settings-list">
+        <li id="install-row" hidden><button id="install-app" class="settings-item" type="button">이 기기에 앱 설치</button></li>
+        <li><button id="logout" class="settings-item danger" type="button">로그아웃</button></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== 여러 개 선택했을 때 아래에 나오는 막대 ===== -->
+  <div id="select-bar" class="select-bar" hidden>
+    <div class="select-top">
+      <span id="select-count" class="select-count"></span>
+      <button id="select-all" class="chip-button" type="button">전체 선택</button>
+      <button id="select-undone" class="chip-button" type="button">미완료만</button>
+      <button id="select-cancel" class="select-cancel" type="button">취소</button>
+    </div>
+    <div class="select-actions">
+      <button class="select-action" type="button" data-bulk="move">이동</button>
+      <button class="select-action" type="button" data-bulk="copy">복사</button>
+      <button class="select-action" type="button" data-bulk="archive">보관</button>
+      <button class="select-action danger" type="button" data-bulk="delete">삭제</button>
+    </div>
+  </div>
+
+  <!-- ===== 하단 메뉴바 ===== -->
+  <nav class="tabbar" aria-label="메뉴">
+    <button class="tab" type="button" data-tab="home" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5L12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg>
+      <span>홈</span>
+    </button>
+    <button class="tab" type="button" data-tab="planner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+      <span>플래너</span>
+    </button>
+    <button class="tab" type="button" data-tab="me">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.8-3.6 3.9-5.8 7.5-5.8s6.7 2.2 7.5 5.8"/></svg>
+      <span>개인정보</span>
+    </button>
+  </nav>
 
   <dialog id="cat-dialog" class="sheet" aria-labelledby="cat-dialog-title">
     <div class="sheet-head">
@@ -110,7 +181,10 @@
     <p id="archive-empty" class="archive-empty">보관한 할 일이 없어요.</p>
   </dialog>
 
-  <div id="toast" class="toast" role="status"></div>
+  <div id="toast" class="toast" role="status">
+    <span id="toast-text"></span>
+    <button id="toast-action" class="toast-action" type="button" hidden></button>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>

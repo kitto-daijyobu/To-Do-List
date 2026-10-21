@@ -157,6 +157,11 @@ const $archiveEmpty = document.getElementById('archive-empty');
 const $loginButton = document.getElementById('login-button');
 const $loginError = document.getElementById('login-error');
 const $toast = document.getElementById('toast');
+const $toastText = document.getElementById('toast-text');
+const $toastAction = document.getElementById('toast-action');
+const $selectBar = document.getElementById('select-bar');
+const $selectCount = document.getElementById('select-count');
+const $postpone = document.getElementById('postpone-undone');
 
 const CHECK_PATH = 'M3.5 8.5l3 3 6-7';
 const CHECK_ICON = `<svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${CHECK_PATH}"/></svg>`;
@@ -183,12 +188,22 @@ function save(promise) {
   });
 }
 
+// 아래에 잠깐 나오는 알림. action을 주면 '되돌리기' 같은 버튼도 같이 나와요
 let toastTimer = null;
-function showToast(message) {
-  $toast.textContent = message;
+let toastAction = null;
+function showToast(message, action = null) {
+  $toastText.textContent = message;
+  toastAction = action;
+  $toastAction.hidden = !action;
+  if (action) $toastAction.textContent = action.label;
   $toast.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => $toast.classList.remove('show'), 4000);
+  toastTimer = setTimeout(hideToast, action ? 6000 : 4000);
+}
+
+function hideToast() {
+  $toast.classList.remove('show');
+  toastAction = null;
 }
 
 // 다른 기기에서 바뀐 내용이 들어오면 화면을 다시 그려요.
@@ -205,6 +220,7 @@ function scheduleRender() {
   }
   renderPending = false;
   render();
+  if (selecting) renderSelectBar();
   if ($catDialog.open) renderCategoryList();
   if ($archiveDialog.open) renderArchive();
   if ($todoSheet.open && sheetMode === 'menu') renderTodoSheet();
@@ -225,13 +241,13 @@ document.addEventListener('pointercancel', () => { pointerIsDown = false; flushR
 document.addEventListener('focusout', flushRender);
 
 // ===== 할 일 동작 =====
-// 할 일을 만들어 저장만 하고, 화면은 다시 그리지 않아요
 // 그 날짜 목록의 맨 끝 순서 번호
 function nextOrder(dateKey) {
   const sameDay = activeTodos().filter((t) => t.date === dateKey);
   return sameDay.length ? Math.max(...sameDay.map((t) => t.order)) + 1 : 0;
 }
 
+// 할 일을 만들어 저장만 하고, 화면은 다시 그리지 않아요
 function createTodo(title, categoryId) {
   const dateKey = toDateKey(selectedDate);
   const todo = {
@@ -265,10 +281,23 @@ function toggleTodo(id) {
   render();
 }
 
-function deleteTodo(id) {
-  todos = todos.filter((t) => t.id !== id);
-  save(remote.deleteTodo(id));
-  render();
+// 묻지 않고 바로 지워요. 대신 알림의 '되돌리기'로 살릴 수 있어요
+function deleteTodos(ids) {
+  const removed = todos.filter((t) => ids.includes(t.id));
+  todos = todos.filter((t) => !ids.includes(t.id));
+  for (const t of removed) save(remote.deleteTodo(t.id));
+  return {
+    label: '되돌리기',
+    run() {
+      for (const t of removed) {
+        if (todos.some((x) => x.id === t.id)) continue;
+        todos.push(t);
+        save(remote.addTodo(t));
+      }
+      render();
+      if ($archiveDialog.open) renderArchive();
+    },
+  };
 }
 
 // 다른 날짜로 옮기기 (보관함에서 꺼낼 때도 써요)
@@ -300,6 +329,96 @@ function archiveTodo(todo) {
   const fields = { archived: true, archivedAt: Date.now() };
   Object.assign(todo, fields);
   save(remote.updateTodo(todo.id, fields));
+}
+
+// 고른 날짜의 할 일 (순서대로)
+function dayTodosOf(date) {
+  const key = toDateKey(date);
+  return activeTodos().filter((t) => t.date === key).sort((a, b) => a.order - b.order);
+}
+
+// 미완료 할 일을 전부 다음 날로
+function postponeUndone() {
+  const undone = dayTodosOf(selectedDate).filter((t) => !t.done);
+  if (!undone.length) return;
+  const nextDay = toDateKey(addDays(selectedDate, 1));
+  for (const t of undone) moveTodo(t, nextDay);
+  render();
+  showToast(`미완료 ${undone.length}개를 ${formatDateKey(nextDay)}로 옮겼어요`);
+}
+
+// ===== 여러 개 선택 =====
+let selecting = false;
+const selectedIds = new Set();
+
+function startSelecting() {
+  selecting = true;
+  selectedIds.clear();
+  addingCategoryId = null;
+  document.body.classList.add('selecting');
+  renderDay();
+  renderSelectBar();
+}
+
+function stopSelecting() {
+  selecting = false;
+  selectedIds.clear();
+  document.body.classList.remove('selecting');
+  renderDay();
+  renderSelectBar();
+}
+
+function toggleSelected(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  renderDay();
+  renderSelectBar();
+}
+
+// 고르기 버튼: 이미 전부 골라져 있으면 전부 풀어요
+function selectWhere(test) {
+  const ids = dayTodosOf(selectedDate).filter(test).map((t) => t.id);
+  const already = ids.length && ids.length === selectedIds.size && ids.every((id) => selectedIds.has(id));
+  selectedIds.clear();
+  if (!already) ids.forEach((id) => selectedIds.add(id));
+  renderDay();
+  renderSelectBar();
+}
+
+function renderSelectBar() {
+  $selectBar.hidden = !selecting;
+  if (!selecting) return;
+  // 다른 기기에서 지워진 할 일은 선택에서 빼요
+  const visible = new Set(dayTodosOf(selectedDate).map((t) => t.id));
+  for (const id of [...selectedIds]) if (!visible.has(id)) selectedIds.delete(id);
+  $selectCount.textContent = selectedIds.size ? `${selectedIds.size}개 선택` : '할 일을 눌러 고르세요';
+}
+
+function selectedTodos() {
+  return todos.filter((t) => selectedIds.has(t.id));
+}
+
+function runBulk(kind) {
+  const chosen = selectedTodos();
+  if (!chosen.length) {
+    showToast('먼저 할 일을 골라 주세요');
+    return;
+  }
+  if (kind === 'move' || kind === 'copy') {
+    openDateSheet(chosen.map((t) => t.id), kind);
+    return;
+  }
+  if (kind === 'archive') {
+    chosen.forEach(archiveTodo);
+    stopSelecting();
+    render();
+    showToast(`${chosen.length}개를 보관함에 넣었어요`);
+  } else if (kind === 'delete') {
+    const undo = deleteTodos(chosen.map((t) => t.id));
+    stopSelecting();
+    render();
+    showToast(`${chosen.length}개를 지웠어요`, undo);
+  }
 }
 
 // ===== 카테고리 동작 =====
@@ -369,7 +488,9 @@ function selectDate(date) {
   selectedDate = date;
   viewMonth = new Date(date.getFullYear(), date.getMonth(), 1);
   addingCategoryId = null;
+  selectedIds.clear();
   render();
+  renderSelectBar();
 }
 
 function moveMonth(n) {
@@ -479,17 +600,15 @@ function renderCalendar() {
 }
 
 function renderDay() {
-  const dateKey = toDateKey(selectedDate);
-  const dayTodos = activeTodos()
-    .filter((t) => t.date === dateKey)
-    .sort((a, b) => a.order - b.order);
+  const dayTodos = dayTodosOf(selectedDate);
 
   $dayLabel.textContent = formatLabel(selectedDate);
   $dayTitle.textContent = formatTitle(selectedDate);
   renderProgress();
 
+  // 선택하는 중에는 할 일을 새로 추가하지 않아요
   const sections = categories.map((cat) =>
-    renderSection(cat, dayTodos.filter((t) => t.categoryId === cat.id), true)
+    renderSection(cat, dayTodos.filter((t) => t.categoryId === cat.id), !selecting)
   );
 
   // 지워진 카테고리에 있던 할 일
@@ -514,13 +633,16 @@ function renderDay() {
 }
 
 function renderProgress() {
-  const dateKey = toDateKey(selectedDate);
-  const dayTodos = activeTodos().filter((t) => t.date === dateKey);
+  const dayTodos = dayTodosOf(selectedDate);
   const doneCount = dayTodos.filter((t) => t.done).length;
   const total = dayTodos.length;
   $progressFill.style.width = total ? `${(doneCount / total) * 100}%` : '0';
   $progressText.textContent = total ? `${doneCount} / ${total} 완료` : '할 일 없음';
   $empty.hidden = total > 0;
+
+  const undone = total - doneCount;
+  $postpone.hidden = !undone || selecting;
+  $postpone.textContent = `미완료 ${undone}개 내일 하기`;
 }
 
 function renderSection(cat, items, canAdd) {
@@ -604,6 +726,8 @@ function renderAddRow(categoryId, list) {
 }
 
 function renderItem(todo) {
+  if (selecting) return renderSelectableItem(todo);
+
   const li = document.createElement('li');
   li.className = 'todo-item' + (todo.done ? ' done' : '');
 
@@ -631,14 +755,51 @@ function renderItem(todo) {
   return li;
 }
 
+// 선택하는 중: 줄 어디를 눌러도 골라지고/풀려요
+function renderSelectableItem(todo) {
+  const li = document.createElement('li');
+  const picked = selectedIds.has(todo.id);
+  li.className = 'todo-item selectable' + (todo.done ? ' done' : '') + (picked ? ' picked' : '');
+  li.tabIndex = 0;
+  li.setAttribute('role', 'checkbox');
+  li.setAttribute('aria-checked', String(picked));
+
+  const box = document.createElement('span');
+  box.className = 'pick-box';
+  box.innerHTML = CHECK_ICON;
+
+  const title = document.createElement('span');
+  title.className = 'todo-title';
+  title.textContent = todo.title;
+
+  li.append(box, title);
+  li.addEventListener('click', () => toggleSelected(todo.id));
+  li.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      toggleSelected(todo.id);
+    }
+  });
+  return li;
+}
+
 // ===== 할 일 메뉴 =====
 // sheetMode: menu(메뉴 목록) / move(날짜 바꾸기) / copy(복사하기) / restore(보관함에서 꺼내기)
-let sheetTodoId = null;
+// sheetIds: 메뉴가 다루는 할 일들 (⋯ 메뉴는 1개, 여러 개 선택은 여러 개)
+let sheetIds = [];
 let sheetMode = 'menu';
 
 function openTodoSheet(id) {
-  sheetTodoId = id;
+  sheetIds = [id];
   sheetMode = 'menu';
+  renderTodoSheet();
+  if (!$todoSheet.open) $todoSheet.showModal();
+}
+
+// 날짜 고르기부터 바로 열기 (여러 개 이동·복사)
+function openDateSheet(ids, mode) {
+  sheetIds = ids;
+  sheetMode = mode;
   renderTodoSheet();
   if (!$todoSheet.open) $todoSheet.showModal();
 }
@@ -648,11 +809,12 @@ function closeTodoSheet() {
 }
 
 // 메뉴 동작을 하고, 창을 닫고, 다시 그리고, 알려 줘요
-function finishAction(message) {
+function finishAction(message, action = null) {
   closeTodoSheet();
+  if (selecting) stopSelecting();
   render();
   if ($archiveDialog.open) renderArchive();
-  if (message) showToast(message);
+  if (message) showToast(message, action);
 }
 
 function sheetButton(label, hint, onClick, extraClass = '') {
@@ -673,16 +835,18 @@ function sheetButton(label, hint, onClick, extraClass = '') {
 }
 
 function renderTodoSheet() {
-  const todo = todos.find((t) => t.id === sheetTodoId);
-  if (!todo) {
+  const targets = todos.filter((t) => sheetIds.includes(t.id));
+  if (!targets.length) {
     closeTodoSheet();
     return;
   }
-  $todoSheet.style.setProperty('--cat', categoryColor(todo.categoryId));
-  $todoSheetTitle.textContent = todo.title;
+  const [todo] = targets;
+  const many = targets.length > 1;
+  $todoSheet.style.setProperty('--cat', many ? 'var(--primary)' : categoryColor(todo.categoryId));
+  $todoSheetTitle.textContent = many ? `할 일 ${targets.length}개` : todo.title;
 
   if (sheetMode !== 'menu') {
-    $todoSheetBody.replaceChildren(renderDateForm(todo));
+    $todoSheetBody.replaceChildren(renderDateForm(targets));
     return;
   }
 
@@ -728,17 +892,18 @@ function renderTodoSheet() {
 
   items.push(
     sheetButton('삭제', '', () => {
-      if (!confirm(`'${todo.title}'을(를) 지울까요?`)) return;
-      deleteTodo(todo.id);
-      finishAction('지웠어요');
+      const undo = deleteTodos([todo.id]);
+      finishAction('지웠어요', undo);
     }, 'danger')
   );
 
   $todoSheetBody.replaceChildren(...items);
 }
 
-// 날짜 고르기 (날짜 바꾸기 / 복사하기 / 꺼내기)
-function renderDateForm(todo) {
+// 날짜 고르기 (날짜 바꾸기 / 복사하기 / 꺼내기) — 여러 개도 한 번에
+function renderDateForm(targets) {
+  const [todo] = targets;
+  const fromSelection = targets.length > 1 || selecting;
   const labels = {
     move: ['어느 날로 옮길까요?', '옮기기'],
     copy: ['어느 날에 복사할까요?', '복사하기'],
@@ -765,8 +930,13 @@ function renderDateForm(todo) {
   const back = document.createElement('button');
   back.type = 'button';
   back.className = 'text-button';
-  back.textContent = '뒤로';
+  // 여러 개 선택에서 왔으면 '취소'(창 닫기), ⋯ 메뉴에서 왔으면 '뒤로'(메뉴로)
+  back.textContent = fromSelection ? '취소' : '뒤로';
   back.addEventListener('click', () => {
+    if (fromSelection) {
+      closeTodoSheet();
+      return;
+    }
     sheetMode = 'menu';
     renderTodoSheet();
   });
@@ -780,12 +950,13 @@ function renderDateForm(todo) {
     e.preventDefault();
     const key = input.value;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
+    const count = targets.length > 1 ? `${targets.length}개를 ` : '';
     if (sheetMode === 'copy') {
-      copyTodo(todo, key);
-      finishAction(`${formatDateKey(key)}에 복사했어요`);
+      targets.forEach((t) => copyTodo(t, key));
+      finishAction(`${count}${formatDateKey(key)}에 복사했어요`);
     } else {
-      moveTodo(todo, key);
-      finishAction(`${formatDateKey(key)}로 옮겼어요`);
+      targets.forEach((t) => moveTodo(t, key));
+      finishAction(`${count}${formatDateKey(key)}로 옮겼어요`);
     }
   });
 
@@ -1014,10 +1185,62 @@ for (const dialog of [$archiveDialog, $todoSheet]) {
   });
 }
 document.getElementById('cat-add').addEventListener('click', addCategory);
-// 창 바깥(어두운 부분)을 누르면 닫혀요
 $catDialog.addEventListener('click', (e) => {
   if (e.target === $catDialog) $catDialog.close();
 });
+
+$toastAction.addEventListener('click', () => {
+  const action = toastAction;
+  hideToast();
+  if (action) action.run();
+});
+
+// 미완료 내일 하기, 여러 개 선택
+$postpone.addEventListener('click', postponeUndone);
+document.getElementById('start-select').addEventListener('click', startSelecting);
+document.getElementById('select-cancel').addEventListener('click', stopSelecting);
+document.getElementById('select-all').addEventListener('click', () => selectWhere(() => true));
+document.getElementById('select-undone').addEventListener('click', () => selectWhere((t) => !t.done));
+for (const button of document.querySelectorAll('[data-bulk]')) {
+  button.addEventListener('click', () => runBulk(button.dataset.bulk));
+}
+
+// ===== 하단 메뉴바: 홈 / 플래너 / 개인정보 =====
+function showTab(name) {
+  if (selecting) stopSelecting();
+  document.body.dataset.tab = name;
+  for (const tab of document.querySelectorAll('.tab')) {
+    if (tab.dataset.tab === name) tab.setAttribute('aria-current', 'page');
+    else tab.removeAttribute('aria-current');
+  }
+  window.scrollTo(0, 0);
+}
+
+for (const tab of document.querySelectorAll('.tab')) {
+  tab.addEventListener('click', () => showTab(tab.dataset.tab));
+}
+
+// 아직 안 만든 설정: 누르면 알려 줘요
+for (const item of document.querySelectorAll('[data-soon]')) {
+  item.addEventListener('click', () => showToast(`${item.dataset.soon} 기능은 곧 만들 거예요`));
+}
+
+// 개인정보 화면 위쪽: 구글 계정 사진·이름·이메일 (7-5에서 직접 바꿀 수 있게 할 거예요)
+function renderProfile(user) {
+  document.getElementById('profile-name').textContent = user.displayName || '이름 없음';
+  document.getElementById('profile-email').textContent = user.email || '';
+  const $photo = document.getElementById('profile-photo');
+  $photo.replaceChildren();
+  if (user.photoURL) {
+    const img = document.createElement('img');
+    img.src = user.photoURL;
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    $photo.append(img);
+  } else {
+    $photo.textContent = (user.displayName || user.email || '?').slice(0, 1);
+  }
+}
 
 // ===== 앱처럼 설치하기 =====
 // 오프라인 도우미를 등록해요 (인터넷이 끊겨도 앱이 열리게)
@@ -1025,28 +1248,28 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch((err) => console.error(err));
 }
 
-// 컴퓨터 크롬·갤럭시에서는 설치할 수 있을 때 "앱 설치" 버튼이 나타나요
+// 컴퓨터 크롬·갤럭시에서는 설치할 수 있을 때 개인정보 화면에 "앱 설치"가 나타나요
 // (아이폰은 이 기능이 없어서 사파리의 "홈 화면에 추가"로 설치해요)
-const $installButton = document.getElementById('install-app');
+const $installRow = document.getElementById('install-row');
 let installPrompt = null;
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   installPrompt = e;
-  $installButton.hidden = false;
+  $installRow.hidden = false;
 });
 
-$installButton.addEventListener('click', async () => {
+document.getElementById('install-app').addEventListener('click', async () => {
   if (!installPrompt) return;
   installPrompt.prompt();
   await installPrompt.userChoice;
   installPrompt = null;
-  $installButton.hidden = true;
+  $installRow.hidden = true;
 });
 
 window.addEventListener('appinstalled', () => {
   installPrompt = null;
-  $installButton.hidden = true;
+  $installRow.hidden = true;
 });
 
 // ===== 로그인 =====
@@ -1095,12 +1318,15 @@ if (!isConfigured) {
       todos = [];
       categories = [];
       for (const dialog of [$catDialog, $todoSheet, $archiveDialog]) dialog.close();
+      if (selecting) stopSelecting();
+      showTab('home');
       showScreen('login');
       return;
     }
 
     showScreen('loading');
     useAccount(user.uid);
+    renderProfile(user);
     const local = localDataForSeed();
     await seedIfEmpty(local.categories, local.todos);
 

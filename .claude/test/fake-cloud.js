@@ -15,9 +15,10 @@ function emit() {
 
 export function watchAuth(callback) {
   authCallback = callback;
-  setTimeout(() => callback({ uid: 'test-user' }), 0);
+  setTimeout(() => callback(TEST_USER), 0);
 }
-export const login = async () => authCallback({ uid: 'test-user' });
+const TEST_USER = { uid: 'test-user', displayName: '시험 사용자', email: 'test@example.com', photoURL: null };
+export const login = async () => authCallback(TEST_USER);
 export const logout = async () => authCallback(null);
 export function useAccount() {}
 
