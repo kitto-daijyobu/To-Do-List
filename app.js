@@ -227,7 +227,7 @@ let pointerIsDown = false;
 let renderPending = false;
 
 function scheduleRender() {
-  const typing = document.activeElement?.matches?.('.add-input, .cat-name, .edit-input');
+  const typing = document.activeElement?.matches?.('.add-input, .cat-name, .edit-input, .react-input');
   if (pointerIsDown || typing || dropping) {
     renderPending = true;
     return;
@@ -240,6 +240,7 @@ function scheduleRender() {
   if ($todoSheet.open && sheetMode === 'menu') renderTodoSheet();
   if ($routineDialog.open && routineView === 'list') renderRoutineList();
   if ($templateDialog.open) renderTemplates();
+  if ($reactDialog.open && !pickerOpen) renderReactions();
 }
 
 // 보관함에 없고 지우지 않은(날짜에 놓인) 할 일만
@@ -894,7 +895,12 @@ function renderItem(todo) {
     title.append(mark);
   }
 
-  li.append(check, title);
+  // 이름 아래에 반응 줄 (있을 때만)
+  const main = el('div', { className: 'todo-main' }, [title]);
+  const line = currentUser ? reactionLine(todo) : null;
+  if (line) main.append(line);
+
+  li.append(check, main);
   li.dataset.id = todo.id;
   li.addEventListener('pointerdown', (e) => pressTodo(e, li));
   return li;
@@ -1117,7 +1123,9 @@ let sheetMode = 'menu';
 
 function openTodoSheet(id) {
   if (viewing) {
-    showToast('친구 할 일에 이모지·댓글 달기는 곧 만들 거예요');
+    // 친구 할 일을 누르면 이모지·댓글 창
+    const target = dayTodosOf(selectedDate).find((t) => t.id === id);
+    if (target) openReactions(target);
     return;
   }
   const todo = realize(id);
@@ -2744,12 +2752,15 @@ function viewFriend(friendUid) {
     console.error(err);
     viewMe();
   });
+  watchFriendReactions(friendUid);
 }
 
 function viewMe() {
   if (!viewing) return;
   if (stopFriend) stopFriend();
   stopFriend = null;
+  stopWatchingFriendReactions();
+  if ($reactDialog.open) $reactDialog.close();
   viewing = null;
   ({ todos, categories, routines } = mineSaved);
   mineSaved = null;
@@ -2856,6 +2867,262 @@ function migrateSharing() {
   if (routineChanges.length) save(remote.updateRoutines(routineChanges));
 }
 
+// ===== 이모지·댓글 =====
+// 반응은 할 일 주인의 reactions 칸에 { targetKey, date, from, emoji 또는 text } 로 저장돼요
+// 루틴 할 일은 '루틴+날짜'로 묶어서, 가상 할 일이 진짜가 돼도 반응이 그대로 붙어 있어요
+let myReactions = [];
+let friendReactions = [];
+let stopFriendReactions = null;
+let reactTarget = null; // 반응 창이 보여 주는 할 일 { key, title, categoryId, date }
+let pickerOpen = false;
+let emojiModule = null;
+
+const $reactDialog = document.getElementById('react-dialog');
+const $reactTitle = document.getElementById('react-title');
+const $reactBody = document.getElementById('react-body');
+const $noticeDialog = document.getElementById('notice-dialog');
+const $noticeList = document.getElementById('notice-list');
+const $noticeEmpty = document.getElementById('notice-empty');
+const $noticeBadge = document.getElementById('notice-badge');
+
+const reactionsNow = () => (viewing ? friendReactions : myReactions);
+const reactionOwner = () => viewing || currentUser.uid;
+const targetKeyOf = (todo) => (todo.routineId ? `r:${todo.routineId}:${todo.routineDate || todo.date}` : todo.id);
+const reactionsFor = (key) => reactionsNow().filter((r) => r.targetKey === key).sort((a, b) => a.createdAt - b.createdAt);
+const whoName = (personUid) => (personUid === currentUser?.uid ? profileView().nickname : personName(personUid));
+const whoView = (personUid) => (personUid === currentUser?.uid ? profileView() : personView(personUid));
+
+function timeAgo(ms) {
+  const minutes = Math.floor((Date.now() - ms) / 60000);
+  if (minutes < 1) return '방금';
+  if (minutes < 60) return `${minutes}분 전`;
+  if (minutes < 60 * 24) return `${Math.floor(minutes / 60)}시간 전`;
+  const d = new Date(ms);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
+// 같은 이모지끼리 묶기
+function groupEmojis(list) {
+  const groups = new Map();
+  for (const r of list) {
+    if (!r.emoji) continue;
+    const g = groups.get(r.emoji) || { emoji: r.emoji, people: [], mine: null };
+    g.people.push(r.from);
+    if (r.from === currentUser.uid) g.mine = r;
+    groups.set(r.emoji, g);
+  }
+  return [...groups.values()];
+}
+
+// 할 일 아래 작은 반응 줄 (👏 2 · 💬 1)
+function reactionLine(todo) {
+  const list = reactionsFor(targetKeyOf(todo));
+  if (!list.length) return null;
+  const comments = list.filter((r) => r.text).length;
+  const line = el('button', { type: 'button', className: 'react-line' }, [
+    ...groupEmojis(list).map((g) => el('span', { className: 'react-pill' + (g.mine ? ' mine' : ''), textContent: `${g.emoji} ${g.people.length}` })),
+    comments ? el('span', { className: 'react-pill', textContent: `💬 ${comments}` }) : '',
+  ]);
+  line.setAttribute('aria-label', '반응 보기');
+  line.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openReactions(todo);
+  });
+  return line;
+}
+
+function openReactions(todo) {
+  reactTarget = { key: targetKeyOf(todo), title: todo.title, categoryId: todo.categoryId, date: todo.date };
+  pickerOpen = false;
+  renderReactions();
+  if (!$reactDialog.open) $reactDialog.showModal();
+}
+
+function addReaction(fields) {
+  const r = { id: newId(), targetKey: reactTarget.key, date: reactTarget.date, from: currentUser.uid, createdAt: Date.now(), ...fields };
+  reactionsNow().push(r);
+  save(social.addReaction(reactionOwner(), r));
+  renderReactions();
+  render();
+}
+
+function removeReaction(r) {
+  const list = reactionsNow();
+  const index = list.findIndex((x) => x.id === r.id);
+  if (index >= 0) list.splice(index, 1);
+  save(social.deleteReaction(reactionOwner(), r.id));
+  renderReactions();
+  render();
+}
+
+// 이모지 고르기 (전체 이모지, 영어로 검색). 처음 열 때 한 번만 받아요
+async function makeEmojiPicker() {
+  emojiModule ||= import('https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.3/index.js');
+  await emojiModule;
+  const picker = document.createElement('emoji-picker');
+  picker.dataSource = 'https://cdn.jsdelivr.net/npm/emoji-picker-element-data@1.6.1/en/emojibase/data.json';
+  picker.className = 'emoji-picker';
+  picker.addEventListener('emoji-click', (e) => {
+    pickerOpen = false;
+    const emoji = e.detail.unicode;
+    const mine = reactionsFor(reactTarget.key).find((r) => r.emoji === emoji && r.from === currentUser.uid);
+    if (mine) renderReactions();
+    else addReaction({ emoji });
+  });
+  return picker;
+}
+
+function renderReactions() {
+  if (!reactTarget) return;
+  const me = currentUser.uid;
+  const list = reactionsFor(reactTarget.key);
+  $reactDialog.style.setProperty('--cat', categoryColor(reactTarget.categoryId));
+  $reactTitle.textContent = reactTarget.title;
+
+  // 이모지: 누르면 나도 같이 달기 / 내가 단 건 취소
+  const emojiRow = el('div', { className: 'chip-row react-emojis' }, groupEmojis(list).map((g) => {
+    const b = el('button', { type: 'button', className: 'react-pill big' + (g.mine ? ' mine' : ''), textContent: `${g.emoji} ${g.people.length}` });
+    b.title = g.people.map(whoName).join(', ');
+    b.setAttribute('aria-label', `${g.emoji} ${g.people.map(whoName).join(', ')}${g.mine ? ' (눌러서 취소)' : ' (눌러서 나도 달기)'}`);
+    b.addEventListener('click', () => (g.mine ? removeReaction(g.mine) : addReaction({ emoji: g.emoji })));
+    return b;
+  }));
+  const pickButton = el('button', { type: 'button', className: 'react-pill big add', textContent: pickerOpen ? '닫기' : '+ 이모지' });
+  pickButton.addEventListener('click', () => { pickerOpen = !pickerOpen; renderReactions(); });
+  emojiRow.append(pickButton);
+
+  const pickerArea = el('div', { className: 'picker-area' });
+  if (pickerOpen) {
+    pickerArea.textContent = '이모지 불러오는 중…';
+    makeEmojiPicker()
+      .then((picker) => { if (pickerOpen) pickerArea.replaceChildren(picker); })
+      .catch(() => { pickerArea.textContent = '이모지를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'; });
+  }
+
+  // 댓글
+  const comments = list.filter((r) => r.text).map((r) => {
+    const avatarBox = el('span', { className: 'profile-photo chip-photo' });
+    fillAvatar(avatarBox, whoView(r.from));
+    const row = el('li', { className: 'comment' }, [
+      avatarBox,
+      el('div', { className: 'comment-body' }, [
+        el('p', { className: 'comment-head' }, [el('b', { textContent: whoName(r.from) }), el('span', { textContent: ` · ${timeAgo(r.createdAt)}` })]),
+        el('p', { className: 'comment-text', textContent: r.text }),
+      ]),
+    ]);
+    // 내가 쓴 댓글, 또는 내 할 일에 달린 댓글은 지울 수 있어요
+    if (r.from === me || !viewing) {
+      const del = el('button', { type: 'button', className: 'icon-button', textContent: '×' });
+      del.setAttribute('aria-label', '댓글 지우기');
+      del.addEventListener('click', () => removeReaction(r));
+      row.append(del);
+    }
+    return row;
+  });
+
+  const input = el('input', { type: 'text', className: 'edit-input react-input', maxLength: 300, placeholder: '댓글 달기' });
+  input.setAttribute('aria-label', '댓글');
+  const send = el('button', { type: 'button', className: 'primary-button', textContent: '보내기' });
+  const submit = () => {
+    const text = input.value.trim();
+    if (!text) return;
+    addReaction({ text });
+    $reactBody.querySelector('.react-input')?.focus();
+  };
+  send.addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault();
+      submit();
+    }
+  });
+
+  $reactBody.replaceChildren(
+    emojiRow,
+    pickerArea,
+    el('p', { className: 'field-label', textContent: `댓글 ${comments.length || ''}`.trim() }),
+    comments.length ? el('ul', { className: 'comment-list' }, comments) : el('p', { className: 'sheet-hint', textContent: '첫 댓글을 남겨 보세요.' }),
+    el('div', { className: 'item-add' }, [input, send]),
+  );
+}
+
+// ----- 🔔 새 소식: 친구가 내 할 일에 남긴 반응 -----
+const SEEN_KEY = 'mytodo.noticesSeen';
+function noticesSeenAt() {
+  try { return Number(localStorage.getItem(SEEN_KEY)) || 0; } catch { return 0; }
+}
+
+function myNotices() {
+  return myReactions.filter((r) => r.from !== currentUser?.uid).sort((a, b) => b.createdAt - a.createdAt);
+}
+
+function updateNoticeBadge() {
+  const seen = noticesSeenAt();
+  const count = myNotices().filter((r) => r.createdAt > seen).length;
+  $noticeBadge.hidden = !count;
+  $noticeBadge.textContent = count > 99 ? '99+' : count;
+}
+
+// 반응이 달린 내 할 일의 이름 찾기
+function myTodoTitle(key) {
+  const mine = viewing ? mineSaved : { todos, routines };
+  if (key.startsWith('r:')) return mine.routines.find((r) => r.id === key.split(':')[1])?.title || '루틴';
+  return mine.todos.find((t) => t.id === key)?.title || '지운 할 일';
+}
+
+function openNotices() {
+  const seen = noticesSeenAt();
+  const items = myNotices().slice(0, 50).map((r) => {
+    const avatarBox = el('span', { className: 'profile-photo chip-photo' });
+    fillAvatar(avatarBox, whoView(r.from));
+    const what = r.emoji ? `${whoName(r.from)}님이 ${r.emoji} 반응했어요` : `${whoName(r.from)}님의 댓글: ${r.text}`;
+    const button = el('button', { type: 'button', className: 'archive-item' + (r.createdAt > seen ? ' unread' : '') }, [
+      avatarBox,
+      el('span', { className: 'archive-title' }, [
+        el('span', { className: 'routine-name', textContent: what }),
+        el('span', { className: 'routine-rule', textContent: `${myTodoTitle(r.targetKey)} · ${formatDateKey(r.date)} · ${timeAgo(r.createdAt)}` }),
+      ]),
+    ]);
+    button.addEventListener('click', () => {
+      $noticeDialog.close();
+      viewMe();
+      showTab('home');
+      selectDate(parseDateKey(r.date));
+    });
+    return el('li', {}, [button]);
+  });
+  $noticeList.replaceChildren(...items);
+  $noticeEmpty.hidden = items.length > 0;
+  $noticeDialog.showModal();
+  try { localStorage.setItem(SEEN_KEY, String(Date.now())); } catch { /* 괜찮아요 */ }
+  updateNoticeBadge();
+}
+
+function watchFriendReactions(friendUid) {
+  friendReactions = [];
+  stopFriendReactions = social.watchReactions(friendUid, (list) => {
+    if (viewing !== friendUid) return;
+    friendReactions = list;
+    list.forEach((r) => { if (r.from !== currentUser.uid) watchPerson(r.from); });
+    scheduleRender();
+  }, (err) => console.error(err));
+}
+
+function stopWatchingFriendReactions() {
+  if (stopFriendReactions) stopFriendReactions();
+  stopFriendReactions = null;
+  friendReactions = [];
+}
+
+document.getElementById('open-notices').addEventListener('click', openNotices);
+document.getElementById('notice-close').addEventListener('click', () => $noticeDialog.close());
+document.getElementById('react-close').addEventListener('click', () => $reactDialog.close());
+for (const dialog of [$noticeDialog, $reactDialog]) {
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+}
+
 document.getElementById('open-profile').addEventListener('click', openProfileForm);
 document.getElementById('profile-close').addEventListener('click', () => $profileDialog.close());
 $profileDialog.addEventListener('click', (e) => {
@@ -2942,6 +3209,9 @@ if (!isConfigured) {
       plannerTemplates = [];
       if (stopFriend) stopFriend();
       stopFriend = null;
+      stopWatchingFriendReactions();
+      myReactions = [];
+      for (const dialog of [$reactDialog, $noticeDialog]) dialog.close();
       viewing = null;
       mineSaved = null;
       document.body.classList.remove('viewing-friend');
@@ -2981,6 +3251,12 @@ if (!isConfigured) {
       onRoutines: (list) => { if (viewing) mineSaved.routines = list; else routines = list; gotRoutines = true; ready(); },
       onBlocks: (list) => { blocks = list; gotBlocks = true; ready(); },
       onTemplates: (list) => { plannerTemplates = list; gotTemplates = true; ready(); },
+      onReactions: (list) => {
+        myReactions = list;
+        list.forEach((r) => { if (r.from !== user.uid) watchPerson(r.from); });
+        updateNoticeBadge();
+        if (!viewing) scheduleRender();
+      },
       onProfile: (data) => {
         profile = data;
         renderProfile();

@@ -3,6 +3,16 @@ export const isConfigured = true;
 
 const data = { todos: new Map(), categories: new Map(), routines: new Map(), blocks: new Map(), templates: new Map() };
 const copyAll = (map) => [...map.values()].map((x) => JSON.parse(JSON.stringify(x)));
+const reactionStore = new Map(); // 주인 계정 → Map(id → 반응)
+const reactionWatchers = new Map(); // 주인 계정 → [콜백]
+function reactionsOf(owner) {
+  if (!reactionStore.has(owner)) reactionStore.set(owner, new Map());
+  return reactionStore.get(owner);
+}
+function emitReactions(owner) {
+  if (owner === 'test-user') emit();
+  for (const cb of reactionWatchers.get(owner) || []) setTimeout(() => cb(copyAll(reactionsOf(owner))), 0);
+}
 const listeners = [];
 let authCallback = null;
 
@@ -17,6 +27,7 @@ function emit() {
       l.onTodos(todos); l.onCategories(categories); l.onRoutines(routines);
       l.onBlocks(blocks); l.onTemplates(templates);
       l.onProfile(data.profile ? JSON.parse(JSON.stringify(data.profile)) : null);
+      l.onReactions(copyAll(reactionsOf('test-user')));
     }, 0);
   }
 }
@@ -87,6 +98,14 @@ export const social = {
   acceptFollow: (from) => later(() => { follows.get(`${from}_test-user`).status = 'accepted'; emitFollows(); }),
   removeFollow: (from, to) => later(() => { follows.delete(`${from}_${to}`); emitFollows(); }),
   watchFollows: (cb) => { followListeners.push(cb); emitFollows(); return () => {}; },
+  addReaction: (owner, r) => later(() => { reactionsOf(owner).set(r.id, { ...r }); emitReactions(owner); }),
+  deleteReaction: (owner, id) => later(() => { reactionsOf(owner).delete(id); emitReactions(owner); }),
+  watchReactions: (owner, cb) => {
+    if (!reactionWatchers.has(owner)) reactionWatchers.set(owner, []);
+    reactionWatchers.get(owner).push(cb);
+    setTimeout(() => cb(copyAll(reactionsOf(owner))), 0);
+    return () => {};
+  },
   watchFriend: (id, { onTodos, onCategories, onRoutines }) => {
     setTimeout(() => {
       onCategories([{ id: 'study', name: '공부', color: '#8E7CE0', order: 0, hidden: false }]);
@@ -102,5 +121,14 @@ export const social = {
 follows.set('friend-2_test-user', { from: 'friend-2', to: 'test-user', status: 'pending' });
 publicProfiles.set('friend-2', { uid: 'friend-2', nickname: '민지', bio: '', photo: '', friendCode: 'MINJI2' });
 
+// 친구가 내 할 일에 반응을 남긴 것처럼 흉내 내기 (시험용): __fake.friendReacts(todoId, emoji, text)
+function friendReacts(targetKey, emoji, text) {
+  const r = { id: 'r' + Math.random().toString(36).slice(2, 8), targetKey, date: todayKey, from: 'friend-1', createdAt: Date.now() };
+  if (emoji) r.emoji = emoji;
+  if (text) r.text = text;
+  reactionsOf('test-user').set(r.id, r);
+  emitReactions('test-user');
+}
+
 // 시험할 때 다른 기기에서 바뀐 것처럼 흉내 내기
-window.__fake = { data, emit };
+window.__fake = { data, emit, friendReacts, reactionsOf };

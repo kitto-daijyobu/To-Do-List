@@ -62,8 +62,10 @@ export function useAccount(userId) {
 }
 
 // 할 일·카테고리가 바뀔 때마다 알려 줘요. 다른 기기에서 바꿔도 바로 알려 줘요.
-export function subscribe({ onTodos, onCategories, onRoutines, onBlocks, onTemplates, onProfile, onError }) {
+export function subscribe({ onTodos, onCategories, onRoutines, onBlocks, onTemplates, onProfile, onReactions, onError }) {
   const stops = [
+    // 내 할 일에 달린 이모지·댓글 (이건 실패해도 로그아웃시키지 않아요)
+    onSnapshot(collection(db, 'users', uid, 'reactions'), (snap) => onReactions(snap.docs.map((d) => d.data())), (err) => console.error(err)),
     onSnapshot(profileDoc(), (snap) => onProfile(snap.exists() ? snap.data() : null), onError),
     onSnapshot(todosCol(), (snap) => onTodos(snap.docs.map((d) => d.data())), onError),
     onSnapshot(routinesCol(), (snap) => onRoutines(snap.docs.map((d) => d.data())), onError),
@@ -145,6 +147,11 @@ export const social = {
     ];
     return () => stops.forEach((stop) => stop());
   },
+  // 이모지·댓글: 할 일 주인의 reactions 칸에 저장해요
+  addReaction: (ownerUid, reaction) => setDoc(doc(db, 'users', ownerUid, 'reactions', reaction.id), reaction),
+  deleteReaction: (ownerUid, id) => deleteDoc(doc(db, 'users', ownerUid, 'reactions', id)),
+  watchReactions: (ownerUid, callback, onError) =>
+    onSnapshot(collection(db, 'users', ownerUid, 'reactions'), (s) => callback(s.docs.map((d) => d.data())), onError),
   // 친구의 공개된 할 일·카테고리·루틴만 읽어요 (숨긴 건 보안 규칙이 막아요)
   watchFriend(friendUid, { onTodos, onCategories, onRoutines }, onError) {
     const col = (name) => collection(db, 'users', friendUid, name);

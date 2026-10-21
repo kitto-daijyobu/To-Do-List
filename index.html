@@ -45,6 +45,10 @@
     <!-- 맨 위: 친구 칸(접었다 폈다) + 내 프로필 -->
     <section class="home-top" aria-label="프로필과 친구">
       <div class="home-top-bar">
+        <button id="open-notices" class="menu-button bell-button" type="button" aria-label="새 소식">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 14V9a5 5 0 0 1 10 0v5l1.5 1.5h-13zM8.3 17.2a1.9 1.9 0 0 0 3.4 0"/></svg>
+          <span id="notice-badge" class="tab-badge" hidden></span>
+        </button>
         <button id="toggle-friends" class="menu-button" type="button" aria-expanded="true" aria-controls="friend-strip" aria-label="친구 칸 접기">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="7" r="2.8"/><path d="M2.5 16c.6-2.8 2.6-4.3 5-4.3s4.4 1.5 5 4.3M13 4.5a2.6 2.6 0 0 1 0 5M14.5 12c1.6.4 2.6 1.7 3 4"/></svg>
         </button>
@@ -237,6 +241,25 @@
       <button id="block-close" class="icon-button" type="button" aria-label="닫기">×</button>
     </div>
     <div id="block-body"></div>
+  </dialog>
+
+  <!-- 이모지·댓글 -->
+  <dialog id="react-dialog" class="sheet action-sheet routine-sheet" aria-labelledby="react-title">
+    <div class="sheet-head">
+      <h2 id="react-title" class="todo-sheet-title"></h2>
+      <button id="react-close" class="icon-button" type="button" aria-label="닫기">×</button>
+    </div>
+    <div id="react-body"></div>
+  </dialog>
+
+  <!-- 새 소식 -->
+  <dialog id="notice-dialog" class="sheet routine-sheet" aria-labelledby="notice-title">
+    <div class="sheet-head">
+      <h2 id="notice-title">새 소식</h2>
+      <button id="notice-close" class="icon-button" type="button" aria-label="닫기">×</button>
+    </div>
+    <ul id="notice-list" class="archive-list"></ul>
+    <p id="notice-empty" class="archive-empty">아직 소식이 없어요.</p>
   </dialog>
 
   <!-- 프로필 설정 -->
