@@ -9,6 +9,8 @@
   --primary-soft: #e6eef8;
   --primary-hover: #2f5b8d;
   --danger: #c2524a;
+  --sunday: #c96a64;
+  --saturday: #4f7fc0;
   --radius: 14px;
   --shadow: 0 1px 2px rgba(31, 42, 55, 0.04), 0 4px 16px rgba(31, 42, 55, 0.05);
   --font: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
@@ -28,10 +30,167 @@ body {
 }
 
 .app {
+  display: grid;
+  gap: 28px;
   max-width: 560px;
   margin: 0 auto;
   padding: 40px 16px 80px;
 }
+
+/* 넓은 화면(컴퓨터)에서는 달력 왼쪽, 할 일 오른쪽 */
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: 360px minmax(0, 1fr);
+    align-items: start;
+    gap: 40px;
+    max-width: 980px;
+    padding-top: 56px;
+  }
+  .calendar { position: sticky; top: 32px; }
+}
+
+/* ===== 달력 ===== */
+.calendar {
+  padding: 18px 16px 14px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.cal-title {
+  margin: 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  min-width: 108px;
+  text-align: center;
+}
+
+.cal-nav {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cal-nav svg { width: 16px; height: 16px; }
+
+.cal-nav:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.cal-today {
+  margin-left: auto;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cal-today:hover { background: #d6e3f3; }
+
+.cal-weekdays,
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.cal-weekdays span {
+  padding: 4px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.cal-weekdays .sun { color: var(--sunday); }
+.cal-weekdays .sat { color: var(--saturday); }
+
+.cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0 6px;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cal-day:hover { background: var(--bg); }
+
+.cal-num {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  border-radius: 50%;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cal-day.sun .cal-num { color: var(--sunday); }
+.cal-day.sat .cal-num { color: var(--saturday); }
+.cal-day.other { opacity: 0.35; }
+
+.cal-day.today .cal-num {
+  font-weight: 700;
+  color: var(--primary);
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+}
+
+.cal-day.selected .cal-num {
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  box-shadow: none;
+}
+
+/* 날짜 아래 작은 표시: 남은 개수 또는 ✔ */
+.cal-mark {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 999px;
+}
+
+.cal-mark.left {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.cal-mark.all-done { color: var(--primary); }
+.cal-mark.all-done svg { width: 12px; height: 12px; }
 
 /* ===== 날짜 머리말 ===== */
 .day-header { margin-bottom: 24px; }
@@ -213,6 +372,8 @@ body {
 
 /* ===== 휴대폰 화면 ===== */
 @media (max-width: 480px) {
-  .app { padding-top: 28px; }
+  .app { padding-top: 20px; gap: 24px; }
+  .calendar { padding: 14px 10px 10px; }
+  .cal-num { width: 30px; height: 30px; }
   .day-title { font-size: 24px; }
 }

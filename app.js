@@ -35,15 +35,34 @@ function formatTitle(date) {
   return `${date.getMonth() + 1}월 ${date.getDate()}일 (${WEEKDAYS[date.getDay()]})`;
 }
 
+function addDays(date, n) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + n);
+}
+
+// 제목 위 작은 글씨: 오늘 / 어제 / 내일, 그 밖에는 연도
+function formatLabel(date) {
+  const key = toDateKey(date);
+  const today = new Date();
+  if (key === toDateKey(today)) return '오늘';
+  if (key === toDateKey(addDays(today, -1))) return '어제';
+  if (key === toDateKey(addDays(today, 1))) return '내일';
+  return `${date.getFullYear()}년`;
+}
+
 function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
 // ===== 상태 =====
 let todos = store.load();
-let selectedDate = new Date(); // 2단계에서 달력으로 바꿀 수 있게 돼요
+let selectedDate = new Date();
+// 달력에 보이는 달 (그 달 1일)
+let viewMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
 
 // ===== 화면 요소 =====
+const $calTitle = document.getElementById('cal-title');
+const $calGrid = document.getElementById('cal-grid');
+const $dayLabel = document.getElementById('day-label');
 const $dayTitle = document.getElementById('day-title');
 const $progressFill = document.getElementById('progress-fill');
 const $progressText = document.getElementById('progress-text');
@@ -54,6 +73,8 @@ const $empty = document.getElementById('empty-message');
 
 const CHECK_ICON =
   '<svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+const CHECK_MARK =
+  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>';
 
 // ===== 동작 =====
 function addTodo(title) {
@@ -87,13 +108,92 @@ function commit() {
   render();
 }
 
+function selectDate(date) {
+  selectedDate = date;
+  viewMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  render();
+}
+
+function moveMonth(n) {
+  viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + n, 1);
+  renderCalendar();
+}
+
 // ===== 화면 그리기 =====
 function render() {
+  renderCalendar();
+  renderDay();
+}
+
+function renderCalendar() {
+  const year = viewMonth.getFullYear();
+  const month = viewMonth.getMonth();
+  $calTitle.textContent = `${year}년 ${month + 1}월`;
+
+  // 날짜별 [전체, 완료] 개수
+  const counts = {};
+  for (const t of todos) {
+    const c = (counts[t.date] ||= [0, 0]);
+    c[0]++;
+    if (t.done) c[1]++;
+  }
+
+  const todayKey = toDateKey(new Date());
+  const selectedKey = toDateKey(selectedDate);
+
+  // 달력 첫 칸 = 이번 달 1일이 속한 주의 일요일
+  const start = addDays(viewMonth, -viewMonth.getDay());
+  const lastDay = new Date(year, month + 1, 0);
+  const weeks = Math.ceil((viewMonth.getDay() + lastDay.getDate()) / 7);
+
+  const cells = [];
+  for (let i = 0; i < weeks * 7; i++) {
+    const date = addDays(start, i);
+    const key = toDateKey(date);
+    const [total, done] = counts[key] || [0, 0];
+
+    const cell = document.createElement('button');
+    cell.type = 'button';
+    cell.className = 'cal-day';
+    if (date.getDay() === 0) cell.classList.add('sun');
+    if (date.getDay() === 6) cell.classList.add('sat');
+    if (date.getMonth() !== month) cell.classList.add('other');
+    if (key === todayKey) cell.classList.add('today');
+    if (key === selectedKey) cell.classList.add('selected');
+
+    const num = document.createElement('span');
+    num.className = 'cal-num';
+    num.textContent = date.getDate();
+
+    const mark = document.createElement('span');
+    mark.className = 'cal-mark';
+    if (total && done === total) {
+      mark.classList.add('all-done');
+      mark.innerHTML = CHECK_MARK;
+    } else if (total) {
+      mark.classList.add('left');
+      mark.textContent = total - done;
+    }
+
+    let label = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+    if (total) label += `, 할 일 ${total}개 중 ${done}개 완료`;
+    cell.setAttribute('aria-label', label);
+    if (key === selectedKey) cell.setAttribute('aria-pressed', 'true');
+
+    cell.append(num, mark);
+    cell.addEventListener('click', () => selectDate(date));
+    cells.push(cell);
+  }
+  $calGrid.replaceChildren(...cells);
+}
+
+function renderDay() {
   const dateKey = toDateKey(selectedDate);
   const dayTodos = todos
     .filter((t) => t.date === dateKey)
     .sort((a, b) => a.order - b.order);
 
+  $dayLabel.textContent = formatLabel(selectedDate);
   $dayTitle.textContent = formatTitle(selectedDate);
 
   const doneCount = dayTodos.filter((t) => t.done).length;
@@ -140,5 +240,9 @@ $form.addEventListener('submit', (e) => {
   $input.value = '';
   $input.focus();
 });
+
+document.getElementById('cal-prev').addEventListener('click', () => moveMonth(-1));
+document.getElementById('cal-next').addEventListener('click', () => moveMonth(1));
+document.getElementById('cal-today').addEventListener('click', () => selectDate(new Date()));
 
 render();

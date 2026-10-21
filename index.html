@@ -10,22 +10,41 @@
 </head>
 <body>
   <main class="app">
-    <header class="day-header">
-      <p class="day-label">오늘</p>
-      <h1 id="day-title" class="day-title"></h1>
-      <div class="progress">
-        <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
-        <span id="progress-text" class="progress-text"></span>
+    <section class="calendar" aria-label="달력">
+      <div class="cal-header">
+        <button id="cal-prev" class="cal-nav" type="button" aria-label="이전 달">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8l4.5 4.5"/></svg>
+        </button>
+        <h2 id="cal-title" class="cal-title"></h2>
+        <button id="cal-next" class="cal-nav" type="button" aria-label="다음 달">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg>
+        </button>
+        <button id="cal-today" class="cal-today" type="button">오늘</button>
       </div>
-    </header>
+      <div class="cal-weekdays" aria-hidden="true">
+        <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+      </div>
+      <div id="cal-grid" class="cal-grid"></div>
+    </section>
 
-    <form id="add-form" class="add-form" autocomplete="off">
-      <input id="add-input" class="add-input" type="text" placeholder="할 일을 입력하세요" maxlength="200" aria-label="새 할 일">
-      <button class="add-button" type="submit" aria-label="추가">추가</button>
-    </form>
+    <section class="day">
+      <header class="day-header">
+        <p id="day-label" class="day-label"></p>
+        <h1 id="day-title" class="day-title"></h1>
+        <div class="progress">
+          <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+          <span id="progress-text" class="progress-text"></span>
+        </div>
+      </header>
 
-    <ul id="todo-list" class="todo-list"></ul>
-    <p id="empty-message" class="empty-message">아직 할 일이 없어요.<br>위 칸에 입력하고 <b>추가</b>를 눌러 보세요.</p>
+      <form id="add-form" class="add-form" autocomplete="off">
+        <input id="add-input" class="add-input" type="text" placeholder="할 일을 입력하세요" maxlength="200" aria-label="새 할 일">
+        <button class="add-button" type="submit" aria-label="추가">추가</button>
+      </form>
+
+      <ul id="todo-list" class="todo-list"></ul>
+      <p id="empty-message" class="empty-message">아직 할 일이 없어요.<br>위 칸에 입력하고 <b>추가</b>를 눌러 보세요.</p>
+    </section>
   </main>
 
   <script src="app.js"></script>
