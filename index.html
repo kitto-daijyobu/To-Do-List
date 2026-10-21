@@ -90,15 +90,23 @@
     </section>
   </main>
 
-  <!-- ===== 플래너 (7-4단계에서 채워요) ===== -->
-  <section class="view" id="view-planner" aria-labelledby="planner-title">
+  <!-- ===== 플래너: 시간대별 블록 목록 ===== -->
+  <section class="view" id="view-planner" aria-label="플래너">
     <div class="view-inner">
-      <h1 id="planner-title" class="view-title">플래너</h1>
-      <div class="soon-card">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
-        <p class="soon-title">시간대별 하루 계획</p>
-        <p class="soon-text">8:00–9:20 아침 운동처럼 시간을 정해서<br>하루를 계획하는 화면이 여기에 생겨요.</p>
+      <div class="planner-head">
+        <button id="pl-prev" class="cal-nav" type="button" aria-label="전날">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8l4.5 4.5"/></svg>
+        </button>
+        <button id="pl-date" class="planner-date" type="button" aria-expanded="false"></button>
+        <button id="pl-next" class="cal-nav" type="button" aria-label="다음날">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg>
+        </button>
+        <button id="pl-templates" class="text-button planner-tpl" type="button">틀</button>
       </div>
+      <div id="pl-cal" class="planner-cal" hidden></div>
+      <div id="pl-list" class="planner-list"></div>
+      <p id="pl-empty" class="empty-message">아직 계획이 없어요.<br>아래 <b>+ 일정 추가</b>로 시간대를 만들어 보세요.</p>
+      <button id="pl-add" class="cat-add planner-add" type="button">+ 일정 추가</button>
     </div>
   </section>
 
@@ -185,6 +193,24 @@
       <button id="routine-close" class="icon-button" type="button" aria-label="닫기">×</button>
     </div>
     <div id="routine-body"></div>
+  </dialog>
+
+  <!-- 플래너 일정 만들기·고치기 -->
+  <dialog id="block-dialog" class="sheet routine-sheet" aria-labelledby="block-title">
+    <div class="sheet-head">
+      <h2 id="block-title"></h2>
+      <button id="block-close" class="icon-button" type="button" aria-label="닫기">×</button>
+    </div>
+    <div id="block-body"></div>
+  </dialog>
+
+  <!-- 플래너 틀 -->
+  <dialog id="template-dialog" class="sheet" aria-labelledby="template-title">
+    <div class="sheet-head">
+      <h2 id="template-title">플래너 틀</h2>
+      <button id="template-close" class="icon-button" type="button" aria-label="닫기">×</button>
+    </div>
+    <div id="template-body"></div>
   </dialog>
 
   <!-- 보관함 -->

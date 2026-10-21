@@ -38,6 +38,8 @@ let uid = null;
 const todosCol = () => collection(db, 'users', uid, 'todos');
 const categoriesCol = () => collection(db, 'users', uid, 'categories');
 const routinesCol = () => collection(db, 'users', uid, 'routines');
+const blocksCol = () => collection(db, 'users', uid, 'planner');
+const templatesCol = () => collection(db, 'users', uid, 'plannerTemplates');
 
 export function watchAuth(callback) {
   onAuthStateChanged(auth, callback);
@@ -56,10 +58,12 @@ export function useAccount(userId) {
 }
 
 // 할 일·카테고리가 바뀔 때마다 알려 줘요. 다른 기기에서 바꿔도 바로 알려 줘요.
-export function subscribe({ onTodos, onCategories, onRoutines, onError }) {
+export function subscribe({ onTodos, onCategories, onRoutines, onBlocks, onTemplates, onError }) {
   const stops = [
     onSnapshot(todosCol(), (snap) => onTodos(snap.docs.map((d) => d.data())), onError),
     onSnapshot(routinesCol(), (snap) => onRoutines(snap.docs.map((d) => d.data())), onError),
+    onSnapshot(blocksCol(), (snap) => onBlocks(snap.docs.map((d) => d.data())), onError),
+    onSnapshot(templatesCol(), (snap) => onTemplates(snap.docs.map((d) => d.data())), onError),
     onSnapshot(
       categoriesCol(),
       (snap) => onCategories(snap.docs.map((d) => d.data()).sort((a, b) => a.order - b.order)),
@@ -100,6 +104,10 @@ export const remote = {
   deleteCategory: (id) => deleteDoc(doc(categoriesCol(), id)),
   saveRoutine: (routine) => setDoc(doc(routinesCol(), routine.id), routine),
   deleteRoutine: (id) => deleteDoc(doc(routinesCol(), id)),
+  saveBlock: (block) => setDoc(doc(blocksCol(), block.id), block),
+  deleteBlock: (id) => deleteDoc(doc(blocksCol(), id)),
+  saveTemplate: (template) => setDoc(doc(templatesCol(), template.id), template),
+  deleteTemplate: (id) => deleteDoc(doc(templatesCol(), id)),
   reorderCategories(ids) {
     const batch = writeBatch(db);
     ids.forEach((id, i) => batch.update(doc(categoriesCol(), id), { order: i }));

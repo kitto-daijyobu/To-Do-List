@@ -1,7 +1,8 @@
 // 시험용 가짜 저장소: 진짜 Firebase 대신 메모리에만 저장해요 (미리보기 시험 전용)
 export const isConfigured = true;
 
-const data = { todos: new Map(), categories: new Map(), routines: new Map() };
+const data = { todos: new Map(), categories: new Map(), routines: new Map(), blocks: new Map(), templates: new Map() };
+const copyAll = (map) => [...map.values()].map((x) => JSON.parse(JSON.stringify(x)));
 const listeners = [];
 let authCallback = null;
 
@@ -10,7 +11,12 @@ function emit() {
   const categories = [...data.categories.values()].map((c) => ({ ...c })).sort((a, b) => a.order - b.order);
   for (const l of listeners) {
     const routines = [...data.routines.values()].map((r) => JSON.parse(JSON.stringify(r)));
-    setTimeout(() => { l.onTodos(todos); l.onCategories(categories); l.onRoutines(routines); }, 0);
+    const blocks = copyAll(data.blocks);
+    const templates = copyAll(data.templates);
+    setTimeout(() => {
+      l.onTodos(todos); l.onCategories(categories); l.onRoutines(routines);
+      l.onBlocks(blocks); l.onTemplates(templates);
+    }, 0);
   }
 }
 
@@ -46,6 +52,10 @@ export const remote = {
   deleteCategory: (id) => later(() => data.categories.delete(id)),
   saveRoutine: (r) => later(() => data.routines.set(r.id, JSON.parse(JSON.stringify(r)))),
   deleteRoutine: (id) => later(() => data.routines.delete(id)),
+  saveBlock: (b) => later(() => data.blocks.set(b.id, JSON.parse(JSON.stringify(b)))),
+  deleteBlock: (id) => later(() => data.blocks.delete(id)),
+  saveTemplate: (t) => later(() => data.templates.set(t.id, JSON.parse(JSON.stringify(t)))),
+  deleteTemplate: (id) => later(() => data.templates.delete(id)),
   reorderCategories: (ids) => later(() => ids.forEach((id, i) => data.categories.set(id, { ...data.categories.get(id), order: i }))),
 };
 

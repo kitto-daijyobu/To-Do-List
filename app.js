@@ -225,6 +225,7 @@ function scheduleRender() {
   if ($archiveDialog.open) renderArchive();
   if ($todoSheet.open && sheetMode === 'menu') renderTodoSheet();
   if ($routineDialog.open && routineView === 'list') renderRoutineList();
+  if ($templateDialog.open) renderTemplates();
 }
 
 // 보관함에 없고 지우지 않은(날짜에 놓인) 할 일만
@@ -597,6 +598,7 @@ function moveMonth(n) {
 function render() {
   renderCalendar();
   renderDay();
+  renderPlanner();
 }
 
 // 네잎 클로버의 잎 색 4개 (왼쪽 위 → 오른쪽 위 → 오른쪽 아래 → 왼쪽 아래)
@@ -1610,6 +1612,423 @@ function deleteRoutine(id) {
   });
 }
 
+// ===== 플래너 (시간대별 블록) =====
+// 블록: { id, date, start:'08:00', end:'09:20', title, categoryId(없으면 휴식), items:[{ id, text, done, todoId? }] }
+// todoId가 있는 세부 할 일은 홈의 할 일과 연결돼서, 줄 그으면 홈에서도 체크돼요
+let blocks = [];
+let plannerTemplates = [];
+let plannerDate = new Date();
+let blockDraft = null;
+let blockLinking = false; // '홈 할 일에서 불러오기' 목록이 열려 있는지
+
+const $plDate = document.getElementById('pl-date');
+const $plCal = document.getElementById('pl-cal');
+const $plList = document.getElementById('pl-list');
+const $plEmpty = document.getElementById('pl-empty');
+const $plAdd = document.getElementById('pl-add');
+const $blockDialog = document.getElementById('block-dialog');
+const $blockTitle = document.getElementById('block-title');
+const $blockBody = document.getElementById('block-body');
+const $templateDialog = document.getElementById('template-dialog');
+const $templateBody = document.getElementById('template-body');
+
+const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const fromMin = (n) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+const showTime = (t) => { const [h, m] = t.split(':').map(Number); return `${h}:${String(m).padStart(2, '0')}`; };
+
+// 2h 30m 처럼 (공책에 쓰시던 모양)
+function durationText(start, end) {
+  const d = toMin(end) - toMin(start);
+  const h = Math.floor(d / 60);
+  const m = d % 60;
+  return [h && `${h}h`, m && `${m}m`].filter(Boolean).join(' ');
+}
+
+function blocksOf(key) {
+  return blocks.filter((b) => b.date === key).sort((a, b) => toMin(a.start) - toMin(b.start) || toMin(a.end) - toMin(b.end));
+}
+
+// 연결된 홈 할 일이 있으면 그 이름과 체크 상태를 따라가요
+function itemState(item) {
+  if (item.todoId) {
+    const todo = todos.find((t) => t.id === item.todoId && !t.deleted);
+    if (todo) return { text: todo.title, done: todo.done, linked: true };
+  }
+  return { text: item.text, done: item.done, linked: false };
+}
+
+function toggleItem(block, itemId) {
+  const item = block.items.find((i) => i.id === itemId);
+  if (!item) return;
+  if (itemState(item).linked) {
+    toggleTodo(item.todoId);
+  } else {
+    item.done = !item.done;
+    save(remote.saveBlock(block));
+  }
+  renderPlanner();
+}
+
+function renderPlanner() {
+  const key = toDateKey(plannerDate);
+  const now = new Date();
+  const isToday = key === toDateKey(now);
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  $plDate.replaceChildren(formatTitle(plannerDate), isToday ? el('span', { className: 'now-badge', textContent: '오늘' }) : '');
+
+  const list = blocksOf(key);
+  $plList.replaceChildren(...list.map((b) => renderBlock(b, isToday && toMin(b.start) <= nowMin && nowMin < toMin(b.end))));
+  $plEmpty.hidden = list.length > 0;
+  $plAdd.textContent = list.length ? `+ 일정 추가 (${showTime(list[list.length - 1].end)}부터)` : '+ 일정 추가';
+  if (!$plCal.hidden) renderPlannerCalendar();
+}
+
+function renderBlock(b, isNow) {
+  const cat = b.categoryId && findCategory(b.categoryId);
+  const card = el('div', { className: 'blk' + (cat ? '' : ' rest') + (isNow ? ' now' : '') });
+  if (cat) card.style.setProperty('--cat', safeColor(cat.color));
+
+  const time = el('div', { className: 'blk-time' }, [
+    el('span', { className: 'blk-start', textContent: showTime(b.start) }),
+    el('span', { className: 'blk-end', textContent: `~ ${showTime(b.end)}` }),
+    el('span', { className: 'blk-dur', textContent: durationText(b.start, b.end) }),
+  ]);
+
+  const head = el('div', { className: 'blk-title' }, [
+    cat ? el('span', { className: 'cat-dot' }) : '',
+    el('span', { textContent: b.title || (cat ? cat.name : '휴식') }),
+  ]);
+  if (isNow) head.append(el('span', { className: 'now-badge', textContent: '지금' }));
+
+  const body = el('div', { className: 'blk-body' }, [head]);
+  if (b.items.length) {
+    body.append(el('div', { className: 'blk-items' }, b.items.map((item) => {
+      const { text, done, linked } = itemState(item);
+      const chip = el('button', { type: 'button', className: 'blk-item' + (done ? ' done' : '') + (linked ? ' linked' : ''), textContent: text });
+      chip.setAttribute('aria-pressed', String(done));
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleItem(b, item.id);
+      });
+      return chip;
+    })));
+  }
+
+  card.append(time, body);
+  card.addEventListener('click', () => openBlockForm(b));
+  return card;
+}
+
+function renderPlannerCalendar() {
+  $plCal.replaceChildren(miniCalendar(toDateKey(plannerDate), (key) => {
+    plannerDate = parseDateKey(key);
+    setPlannerCalendar(false);
+    renderPlanner();
+  }));
+}
+
+function setPlannerCalendar(open) {
+  $plCal.hidden = !open;
+  $plDate.setAttribute('aria-expanded', String(open));
+  if (open) renderPlannerCalendar();
+}
+
+// ----- 일정 만들기·고치기 -----
+function openBlockForm(block) {
+  const key = toDateKey(plannerDate);
+  if (block) {
+    blockDraft = JSON.parse(JSON.stringify(block));
+  } else {
+    const list = blocksOf(key);
+    const start = Math.min(list.length ? toMin(list[list.length - 1].end) : 8 * 60, 23 * 60 + 30);
+    blockDraft = {
+      id: null,
+      date: key,
+      start: fromMin(start),
+      end: fromMin(Math.min(start + 30, 24 * 60)),
+      title: '',
+      categoryId: categories[0]?.id ?? null,
+      items: [],
+    };
+  }
+  blockLinking = false;
+  renderBlockForm();
+  if (!$blockDialog.open) $blockDialog.showModal();
+}
+
+// 시·분 고르기 (5분 단위). 끝 시간은 24:00까지
+function timePicker(value, maxHour, onChange) {
+  const [h, m] = value.split(':').map(Number);
+  const hour = el('select', { className: 'time-select' });
+  for (let i = 0; i <= maxHour; i++) hour.append(el('option', { value: i, textContent: `${i}시`, selected: i === h }));
+  const minute = el('select', { className: 'time-select' });
+  for (let i = 0; i < 60; i += 5) minute.append(el('option', { value: i, textContent: `${String(i).padStart(2, '0')}분`, selected: i === m }));
+  if (h === 24) minute.disabled = true;
+  const change = () => {
+    const hh = Number(hour.value);
+    const mm = hh === 24 ? 0 : Number(minute.value);
+    onChange(fromMin(hh * 60 + mm));
+  };
+  hour.addEventListener('change', change);
+  minute.addEventListener('change', change);
+  hour.setAttribute('aria-label', '시');
+  minute.setAttribute('aria-label', '분');
+  return el('span', { className: 'time-pick' }, [hour, minute]);
+}
+
+function renderBlockForm() {
+  const d = blockDraft;
+  $blockTitle.textContent = d.id ? '일정 고치기' : '일정 추가';
+
+  const dur = el('span', { className: 'time-dur' });
+  const updateDur = () => {
+    dur.textContent = toMin(d.end) > toMin(d.start) ? durationText(d.start, d.end) : '끝 시간을 확인해 주세요';
+  };
+  updateDur();
+  const times = el('div', { className: 'time-row' }, [
+    timePicker(d.start, 23, (v) => {
+      // 시작을 옮기면 길이는 그대로 두고 끝도 같이 옮겨요
+      const length = toMin(d.end) - toMin(d.start);
+      d.start = v;
+      if (length > 0) d.end = fromMin(Math.min(toMin(v) + length, 24 * 60));
+      renderBlockForm();
+    }),
+    el('span', { className: 'time-sep', textContent: '~' }),
+    timePicker(d.end, 24, (v) => { d.end = v; renderBlockForm(); }),
+  ]);
+
+  const title = el('input', { type: 'text', className: 'edit-input', maxLength: 100, value: d.title, placeholder: '예: 컴이활 / 아침 준비' });
+  title.setAttribute('aria-label', '일정 이름');
+  title.addEventListener('input', () => { d.title = title.value; });
+
+  const cats = el('div', { className: 'chip-row' }, [
+    ...categories.map((c) => {
+      const chip = el('button', { type: 'button', className: 'cat-chip' + (c.id === d.categoryId ? ' on' : '') }, [el('span', { className: 'cat-dot' }), c.name]);
+      chip.style.setProperty('--cat', safeColor(c.color));
+      chip.addEventListener('click', () => { d.categoryId = c.id; renderBlockForm(); });
+      return chip;
+    }),
+    (() => {
+      const rest = el('button', { type: 'button', className: 'cat-chip' + (!d.categoryId ? ' on' : ''), textContent: '없음 (휴식·식사)' });
+      rest.style.setProperty('--cat', UNCATEGORIZED_COLOR);
+      rest.addEventListener('click', () => { d.categoryId = null; renderBlockForm(); });
+      return rest;
+    })(),
+  ]);
+
+  // 세부 할 일
+  const itemRows = d.items.map((item, index) => {
+    const { text, linked } = itemState(item);
+    const remove = el('button', { type: 'button', className: 'icon-button', textContent: '×' });
+    remove.setAttribute('aria-label', `${text} 빼기`);
+    remove.addEventListener('click', () => { d.items.splice(index, 1); renderBlockForm(); });
+    return el('li', { className: 'item-row' }, [
+      el('span', { className: 'item-text', textContent: text }),
+      linked ? el('span', { className: 'item-link', textContent: '홈 할 일' }) : '',
+      remove,
+    ]);
+  });
+  const newItem = el('input', { type: 'text', className: 'edit-input', maxLength: 100, placeholder: '세부 할 일 입력 후 엔터' });
+  newItem.setAttribute('aria-label', '세부 할 일');
+  const addItem = () => {
+    const text = newItem.value.trim();
+    if (!text) return;
+    d.items.push({ id: newId(), text, done: false });
+    renderBlockForm();
+    $blockBody.querySelector('.item-add .edit-input')?.focus();
+  };
+  newItem.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault();
+      addItem();
+    }
+  });
+  const addButton = el('button', { type: 'button', className: 'text-button', textContent: '추가' });
+  addButton.addEventListener('click', addItem);
+
+  const linkToggle = el('button', { type: 'button', className: 'link-toggle', textContent: blockLinking ? '홈 할 일 닫기' : '+ 홈 할 일에서 불러오기' });
+  linkToggle.addEventListener('click', () => { blockLinking = !blockLinking; renderBlockForm(); });
+  const linkArea = el('div', { className: 'chip-row' });
+  if (blockLinking) {
+    const used = new Set(d.items.map((i) => i.todoId).filter(Boolean));
+    const candidates = dayTodosOf(parseDateKey(d.date)).filter((t) => !used.has(t.id));
+    if (!candidates.length) linkArea.append(el('p', { className: 'sheet-hint', textContent: '이 날 불러올 홈 할 일이 없어요.' }));
+    for (const t of candidates) {
+      const chip = el('button', { type: 'button', className: 'cat-chip' }, [el('span', { className: 'cat-dot' }), t.title]);
+      chip.style.setProperty('--cat', categoryColor(t.categoryId));
+      chip.addEventListener('click', () => {
+        const todo = realize(t.id); // 루틴이면 그날 것을 진짜로 만들어 연결
+        if (!todo) return;
+        d.items.push({ id: newId(), text: todo.title, done: false, todoId: todo.id });
+        renderBlockForm();
+      });
+      linkArea.append(chip);
+    }
+  }
+
+  const error = el('p', { className: 'form-error', role: 'alert' });
+  const buttons = el('div', { className: 'date-form-buttons' });
+  if (d.id) {
+    const del = el('button', { type: 'button', className: 'text-button danger-text', textContent: '일정 삭제' });
+    del.addEventListener('click', () => deleteBlock(d.id));
+    buttons.append(del);
+  }
+  const cancel = el('button', { type: 'button', className: 'text-button', textContent: '취소' });
+  cancel.addEventListener('click', () => $blockDialog.close());
+  const ok = el('button', { type: 'button', className: 'primary-button', textContent: '저장' });
+  ok.addEventListener('click', () => {
+    if (newItem.value.trim()) addItem(); // 입력칸에 적어 둔 것도 같이 저장
+    const problem = saveBlock();
+    if (problem) error.textContent = problem;
+  });
+  buttons.append(cancel, ok);
+
+  $blockBody.replaceChildren(el('div', { className: 'routine-form' }, [
+    el('p', { className: 'field-label' }, ['시간 ', dur]), times,
+    el('p', { className: 'field-label', textContent: '이름' }), title,
+    el('p', { className: 'field-label', textContent: '카테고리' }), cats,
+    el('p', { className: 'field-label', textContent: '세부 할 일' }),
+    el('ul', { className: 'item-list' }, itemRows),
+    el('div', { className: 'item-add' }, [newItem, addButton]),
+    linkToggle, linkArea,
+    error, buttons,
+  ]));
+}
+
+function saveBlock() {
+  const d = blockDraft;
+  if (toMin(d.end) <= toMin(d.start)) return '끝 시간은 시작 시간보다 뒤여야 해요.';
+  const block = {
+    id: d.id || newId(),
+    date: d.date,
+    start: d.start,
+    end: d.end,
+    title: d.title.trim(),
+    categoryId: d.categoryId || null,
+    items: d.items.map(({ id, text, done, todoId }) => (todoId ? { id, text, done: !!done, todoId } : { id, text, done: !!done })),
+  };
+  const index = blocks.findIndex((b) => b.id === block.id);
+  if (index >= 0) blocks[index] = block;
+  else blocks.push(block);
+  save(remote.saveBlock(block));
+  $blockDialog.close();
+  renderPlanner();
+  return null;
+}
+
+function deleteBlock(id) {
+  const block = blocks.find((b) => b.id === id);
+  if (!block) return;
+  blocks = blocks.filter((b) => b.id !== id);
+  save(remote.deleteBlock(id));
+  $blockDialog.close();
+  renderPlanner();
+  showToast('일정을 지웠어요', {
+    label: '되돌리기',
+    run() {
+      if (blocks.some((b) => b.id === id)) return;
+      blocks.push(block);
+      save(remote.saveBlock(block));
+      renderPlanner();
+    },
+  });
+}
+
+// ----- 플래너 틀 -----
+function renderTemplates() {
+  const key = toDateKey(plannerDate);
+  const rows = plannerTemplates
+    .slice()
+    .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+    .map((t) => {
+      const first = t.blocks[0];
+      const last = t.blocks[t.blocks.length - 1];
+      const summary = first ? `${t.blocks.length}개 시간대 · ${showTime(first.start)}–${showTime(last.end)}` : '비어 있음';
+      const apply = el('button', { type: 'button', className: 'archive-item' }, [
+        el('span', { className: 'archive-title' }, [
+          el('span', { className: 'routine-name', textContent: t.name }),
+          el('span', { className: 'routine-rule', textContent: summary }),
+        ]),
+        el('span', { className: 'archive-from', textContent: '불러오기' }),
+      ]);
+      apply.addEventListener('click', () => applyTemplate(t));
+      const remove = el('button', { type: 'button', className: 'icon-button', textContent: '×' });
+      remove.setAttribute('aria-label', `${t.name} 틀 지우기`);
+      remove.addEventListener('click', () => deleteTemplate(t.id));
+      return el('li', { className: 'template-row' }, [apply, remove]);
+    });
+
+  const name = el('input', { type: 'text', className: 'edit-input', maxLength: 30, placeholder: '틀 이름 (예: 시험 기간 평일)' });
+  name.setAttribute('aria-label', '틀 이름');
+  const error = el('p', { className: 'form-error', role: 'alert' });
+  const saveButton = el('button', { type: 'button', className: 'primary-button', textContent: '지금 플래너를 틀로 저장' });
+  saveButton.addEventListener('click', () => {
+    const list = blocksOf(key);
+    if (!list.length) { error.textContent = '이 날 플래너가 비어 있어요.'; return; }
+    if (!name.value.trim()) { error.textContent = '틀 이름을 적어 주세요.'; return; }
+    const template = {
+      id: newId(),
+      name: name.value.trim(),
+      createdAt: Date.now(),
+      blocks: list.map((b) => ({ start: b.start, end: b.end, title: b.title, categoryId: b.categoryId || null, items: b.items.map((i) => itemState(i).text) })),
+    };
+    plannerTemplates.push(template);
+    save(remote.saveTemplate(template));
+    renderTemplates();
+  });
+
+  $templateBody.replaceChildren(
+    el('p', { className: 'sheet-hint', textContent: `틀을 누르면 ${formatTitle(plannerDate)} 플래너가 그 틀로 바뀌어요.` }),
+    el('ul', { className: 'archive-list' }, rows),
+    rows.length ? '' : el('p', { className: 'archive-empty', textContent: '저장한 틀이 없어요.' }),
+    el('div', { className: 'routine-form template-save' }, [name, error, saveButton]),
+  );
+}
+
+function applyTemplate(template) {
+  const key = toDateKey(plannerDate);
+  const previous = blocksOf(key);
+  for (const b of previous) save(remote.deleteBlock(b.id));
+  const created = template.blocks.map((t) => ({
+    id: newId(),
+    date: key,
+    start: t.start,
+    end: t.end,
+    title: t.title,
+    categoryId: t.categoryId,
+    items: t.items.map((text) => ({ id: newId(), text, done: false })),
+  }));
+  for (const b of created) save(remote.saveBlock(b));
+  blocks = blocks.filter((b) => b.date !== key).concat(created);
+  $templateDialog.close();
+  renderPlanner();
+  showToast(`'${template.name}' 틀을 불러왔어요`, {
+    label: '되돌리기',
+    run() {
+      const swap = new Set([...created, ...previous].map((b) => b.id));
+      for (const b of created) save(remote.deleteBlock(b.id));
+      for (const b of previous) save(remote.saveBlock(b));
+      blocks = blocks.filter((b) => !swap.has(b.id)).concat(previous);
+      renderPlanner();
+    },
+  });
+}
+
+function deleteTemplate(id) {
+  const template = plannerTemplates.find((t) => t.id === id);
+  plannerTemplates = plannerTemplates.filter((t) => t.id !== id);
+  save(remote.deleteTemplate(id));
+  renderTemplates();
+  showToast(`'${template.name}' 틀을 지웠어요`, {
+    label: '되돌리기',
+    run() {
+      plannerTemplates.push(template);
+      save(remote.saveTemplate(template));
+      if ($templateDialog.open) renderTemplates();
+    },
+  });
+}
+
 // ===== 보관함 =====
 function renderArchive() {
   const items = todos
@@ -1823,6 +2242,31 @@ document.getElementById('open-archive').addEventListener('click', () => {
 });
 document.getElementById('archive-close').addEventListener('click', () => $archiveDialog.close());
 document.getElementById('open-routines').addEventListener('click', openRoutineList);
+
+// 플래너
+const movePlanner = (n) => {
+  plannerDate = addDays(plannerDate, n);
+  renderPlanner();
+};
+document.getElementById('pl-prev').addEventListener('click', () => movePlanner(-1));
+document.getElementById('pl-next').addEventListener('click', () => movePlanner(1));
+$plDate.addEventListener('click', () => setPlannerCalendar($plCal.hidden));
+$plAdd.addEventListener('click', () => openBlockForm(null));
+document.getElementById('pl-templates').addEventListener('click', () => {
+  renderTemplates();
+  $templateDialog.showModal();
+});
+document.getElementById('block-close').addEventListener('click', () => $blockDialog.close());
+document.getElementById('template-close').addEventListener('click', () => $templateDialog.close());
+for (const dialog of [$blockDialog, $templateDialog]) {
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+}
+// '지금' 표시가 시간에 맞게 바뀌도록 1분마다 다시 그려요
+setInterval(() => {
+  if (document.body.dataset.tab === 'planner' && document.body.dataset.screen === 'app') renderPlanner();
+}, 60 * 1000);
 document.getElementById('routine-close').addEventListener('click', () => $routineDialog.close());
 $routineDialog.addEventListener('click', (e) => {
   if (e.target === $routineDialog) $routineDialog.close();
@@ -1992,7 +2436,9 @@ if (!isConfigured) {
       todos = [];
       categories = [];
       routines = [];
-      for (const dialog of [$catDialog, $todoSheet, $archiveDialog, $routineDialog]) dialog.close();
+      blocks = [];
+      plannerTemplates = [];
+      for (const dialog of [$catDialog, $todoSheet, $archiveDialog, $routineDialog, $blockDialog, $templateDialog]) dialog.close();
       if (selecting) stopSelecting();
       showTab('home');
       showScreen('login');
@@ -2008,8 +2454,10 @@ if (!isConfigured) {
     let gotTodos = false;
     let gotCategories = false;
     let gotRoutines = false;
+    let gotBlocks = false;
+    let gotTemplates = false;
     const ready = () => {
-      if (!gotTodos || !gotCategories || !gotRoutines) return;
+      if (!gotTodos || !gotCategories || !gotRoutines || !gotBlocks || !gotTemplates) return;
       showScreen('app');
       scheduleRender();
     };
@@ -2017,6 +2465,8 @@ if (!isConfigured) {
       onTodos: (list) => { todos = list; gotTodos = true; ready(); },
       onCategories: (list) => { categories = list; gotCategories = true; ready(); },
       onRoutines: (list) => { routines = list; gotRoutines = true; ready(); },
+      onBlocks: (list) => { blocks = list; gotBlocks = true; ready(); },
+      onTemplates: (list) => { plannerTemplates = list; gotTemplates = true; ready(); },
       onError: (err) => {
         showLoginError(err);
         logout();
