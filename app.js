@@ -1674,7 +1674,9 @@ function renderPlanner() {
   const now = new Date();
   const isToday = key === toDateKey(now);
   const nowMin = now.getHours() * 60 + now.getMinutes();
-  $plDate.replaceChildren(formatTitle(plannerDate), isToday ? el('span', { className: 'now-badge', textContent: '오늘' }) : '');
+  $plDate.textContent = formatTitle(plannerDate);
+  $plDate.classList.toggle('is-today', isToday); // 오늘이면 날짜 뒤에 반투명 타원 배경
+  $plDate.setAttribute('aria-label', formatTitle(plannerDate) + (isToday ? ', 오늘' : '') + ', 달력 열기');
 
   const list = blocksOf(key);
   $plList.replaceChildren(...list.map((b) => renderBlock(b, isToday && toMin(b.start) <= nowMin && nowMin < toMin(b.end))));
@@ -2344,21 +2346,146 @@ for (const item of document.querySelectorAll('[data-soon]')) {
 }
 
 // 개인정보 화면 위쪽: 구글 계정 사진·이름·이메일 (7-5에서 직접 바꿀 수 있게 할 거예요)
-function renderProfile(user) {
-  document.getElementById('profile-name').textContent = user.displayName || '이름 없음';
-  document.getElementById('profile-email').textContent = user.email || '';
-  const $photo = document.getElementById('profile-photo');
-  $photo.replaceChildren();
-  if (user.photoURL) {
-    const img = document.createElement('img');
-    img.src = user.photoURL;
-    img.alt = '';
-    img.referrerPolicy = 'no-referrer';
-    $photo.append(img);
+// ===== 프로필 =====
+// { nickname, bio, photo(작게 줄인 사진), photoSource: 'custom'(직접 올림) / 'google' / 'none' }
+let currentUser = null;
+let profile = null;
+let profileDraft = null;
+const $profileDialog = document.getElementById('profile-dialog');
+const $profileBody = document.getElementById('profile-body');
+
+// 화면에 보일 값 (설정 안 한 건 구글 계정 정보로)
+function profileView(p = profile || {}) {
+  const source = p.photoSource || 'google';
+  let photo = null;
+  if (source === 'custom' && p.photo) photo = p.photo;
+  else if (source === 'google' && currentUser?.photoURL) photo = currentUser.photoURL;
+  return {
+    nickname: p.nickname || currentUser?.displayName || '이름 없음',
+    bio: p.bio || '',
+    photo,
+  };
+}
+
+function fillAvatar(box, view) {
+  box.replaceChildren();
+  if (view.photo) {
+    box.append(el('img', { src: view.photo, alt: '', referrerPolicy: 'no-referrer' }));
   } else {
-    $photo.textContent = (user.displayName || user.email || '?').slice(0, 1);
+    box.textContent = view.nickname.slice(0, 1);
   }
 }
+
+function renderProfile() {
+  if (!currentUser) return;
+  const view = profileView();
+  document.getElementById('profile-name').textContent = view.nickname;
+  const $bio = document.getElementById('profile-bio');
+  $bio.textContent = view.bio;
+  $bio.hidden = !view.bio;
+  document.getElementById('profile-email').textContent = currentUser.email || '';
+  fillAvatar(document.getElementById('profile-photo'), view);
+}
+
+// 올린 사진을 가운데 정사각형으로 잘라 256×256으로 줄여요 (약 20~40KB)
+async function shrinkPhoto(file) {
+  const size = 256;
+  let source;
+  try {
+    source = await createImageBitmap(file);
+  } catch {
+    source = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+  const w = source.width;
+  const h = source.height;
+  const side = Math.min(w, h);
+  const canvas = Object.assign(document.createElement('canvas'), { width: size, height: size });
+  canvas.getContext('2d').drawImage(source, (w - side) / 2, (h - side) / 2, side, side, 0, 0, size, size);
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+function openProfileForm() {
+  const p = profile || {};
+  profileDraft = {
+    nickname: p.nickname || currentUser?.displayName || '',
+    bio: p.bio || '',
+    photo: p.photo || '',
+    photoSource: p.photoSource || 'google',
+  };
+  renderProfileForm();
+  $profileDialog.showModal();
+}
+
+function renderProfileForm() {
+  const d = profileDraft;
+  const preview = el('div', { className: 'profile-photo profile-photo-big' });
+  fillAvatar(preview, profileView(d));
+
+  const file = el('input', { type: 'file', accept: 'image/*', hidden: true });
+  const error = el('p', { className: 'form-error', role: 'alert' });
+  file.addEventListener('change', async () => {
+    const picked = file.files[0];
+    if (!picked) return;
+    try {
+      d.photo = await shrinkPhoto(picked);
+      d.photoSource = 'custom';
+      renderProfileForm();
+    } catch {
+      error.textContent = '이 사진은 불러올 수 없어요. 다른 사진을 골라 주세요.';
+    }
+  });
+  const upload = el('button', { type: 'button', className: 'chip-button', textContent: '사진 올리기' });
+  upload.addEventListener('click', () => file.click());
+  const google = el('button', { type: 'button', className: 'chip-button' + (d.photoSource === 'google' ? ' on' : ''), textContent: '구글 사진' });
+  google.addEventListener('click', () => { d.photoSource = 'google'; renderProfileForm(); });
+  const none = el('button', { type: 'button', className: 'chip-button' + (d.photoSource === 'none' ? ' on' : ''), textContent: '사진 없이' });
+  none.addEventListener('click', () => { d.photoSource = 'none'; renderProfileForm(); });
+
+  const nickname = el('input', { type: 'text', className: 'edit-input', maxLength: 20, value: d.nickname, placeholder: '닉네임' });
+  nickname.setAttribute('aria-label', '닉네임');
+  nickname.addEventListener('input', () => { d.nickname = nickname.value; });
+
+  const count = el('span', { className: 'char-count', textContent: `${d.bio.length}/60` });
+  const bio = el('input', { type: 'text', className: 'edit-input', maxLength: 60, value: d.bio, placeholder: '예: 오늘도 한 칸씩 🍀' });
+  bio.setAttribute('aria-label', '한 줄 소개');
+  bio.addEventListener('input', () => { d.bio = bio.value; count.textContent = `${bio.value.length}/60`; });
+
+  const cancel = el('button', { type: 'button', className: 'text-button', textContent: '취소' });
+  cancel.addEventListener('click', () => $profileDialog.close());
+  const ok = el('button', { type: 'button', className: 'primary-button', textContent: '저장' });
+  ok.addEventListener('click', () => {
+    if (!d.nickname.trim()) { error.textContent = '닉네임을 적어 주세요.'; return; }
+    profile = {
+      nickname: d.nickname.trim(),
+      bio: d.bio.trim(),
+      photo: d.photoSource === 'custom' ? d.photo : '',
+      photoSource: d.photoSource,
+      updatedAt: Date.now(),
+    };
+    save(remote.saveProfile(profile));
+    renderProfile();
+    $profileDialog.close();
+  });
+
+  $profileBody.replaceChildren(el('div', { className: 'routine-form' }, [
+    el('div', { className: 'profile-edit-photo' }, [preview, el('div', { className: 'chip-row' }, [upload, google, none]), file]),
+    el('p', { className: 'field-label', textContent: '닉네임' }), nickname,
+    el('p', { className: 'field-label' }, ['한 줄 소개 ', count]), bio,
+    error,
+    el('div', { className: 'date-form-buttons' }, [cancel, ok]),
+  ]));
+}
+
+document.getElementById('open-profile').addEventListener('click', openProfileForm);
+document.getElementById('profile-close').addEventListener('click', () => $profileDialog.close());
+$profileDialog.addEventListener('click', (e) => {
+  if (e.target === $profileDialog) $profileDialog.close();
+});
 
 // ===== 앱처럼 설치하기 =====
 // 오프라인 도우미를 등록해요 (인터넷이 끊겨도 앱이 열리게)
@@ -2438,7 +2565,9 @@ if (!isConfigured) {
       routines = [];
       blocks = [];
       plannerTemplates = [];
-      for (const dialog of [$catDialog, $todoSheet, $archiveDialog, $routineDialog, $blockDialog, $templateDialog]) dialog.close();
+      profile = null;
+      currentUser = null;
+      for (const dialog of [$catDialog, $todoSheet, $archiveDialog, $routineDialog, $blockDialog, $templateDialog, $profileDialog]) dialog.close();
       if (selecting) stopSelecting();
       showTab('home');
       showScreen('login');
@@ -2447,7 +2576,8 @@ if (!isConfigured) {
 
     showScreen('loading');
     useAccount(user.uid);
-    renderProfile(user);
+    currentUser = user;
+    renderProfile();
     const local = localDataForSeed();
     await seedIfEmpty(local.categories, local.todos);
 
@@ -2467,6 +2597,7 @@ if (!isConfigured) {
       onRoutines: (list) => { routines = list; gotRoutines = true; ready(); },
       onBlocks: (list) => { blocks = list; gotBlocks = true; ready(); },
       onTemplates: (list) => { plannerTemplates = list; gotTemplates = true; ready(); },
+      onProfile: (data) => { profile = data; renderProfile(); },
       onError: (err) => {
         showLoginError(err);
         logout();

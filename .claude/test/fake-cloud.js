@@ -16,6 +16,7 @@ function emit() {
     setTimeout(() => {
       l.onTodos(todos); l.onCategories(categories); l.onRoutines(routines);
       l.onBlocks(blocks); l.onTemplates(templates);
+      l.onProfile(data.profile ? JSON.parse(JSON.stringify(data.profile)) : null);
     }, 0);
   }
 }
@@ -56,6 +57,7 @@ export const remote = {
   deleteBlock: (id) => later(() => data.blocks.delete(id)),
   saveTemplate: (t) => later(() => data.templates.set(t.id, JSON.parse(JSON.stringify(t)))),
   deleteTemplate: (id) => later(() => data.templates.delete(id)),
+  saveProfile: (p) => later(() => { data.profile = JSON.parse(JSON.stringify(p)); }),
   reorderCategories: (ids) => later(() => ids.forEach((id, i) => data.categories.set(id, { ...data.categories.get(id), order: i }))),
 };
 

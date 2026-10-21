@@ -40,6 +40,7 @@ const categoriesCol = () => collection(db, 'users', uid, 'categories');
 const routinesCol = () => collection(db, 'users', uid, 'routines');
 const blocksCol = () => collection(db, 'users', uid, 'planner');
 const templatesCol = () => collection(db, 'users', uid, 'plannerTemplates');
+const profileDoc = () => doc(db, 'users', uid, 'meta', 'profile');
 
 export function watchAuth(callback) {
   onAuthStateChanged(auth, callback);
@@ -58,8 +59,9 @@ export function useAccount(userId) {
 }
 
 // 할 일·카테고리가 바뀔 때마다 알려 줘요. 다른 기기에서 바꿔도 바로 알려 줘요.
-export function subscribe({ onTodos, onCategories, onRoutines, onBlocks, onTemplates, onError }) {
+export function subscribe({ onTodos, onCategories, onRoutines, onBlocks, onTemplates, onProfile, onError }) {
   const stops = [
+    onSnapshot(profileDoc(), (snap) => onProfile(snap.exists() ? snap.data() : null), onError),
     onSnapshot(todosCol(), (snap) => onTodos(snap.docs.map((d) => d.data())), onError),
     onSnapshot(routinesCol(), (snap) => onRoutines(snap.docs.map((d) => d.data())), onError),
     onSnapshot(blocksCol(), (snap) => onBlocks(snap.docs.map((d) => d.data())), onError),
@@ -108,6 +110,7 @@ export const remote = {
   deleteBlock: (id) => deleteDoc(doc(blocksCol(), id)),
   saveTemplate: (template) => setDoc(doc(templatesCol(), template.id), template),
   deleteTemplate: (id) => deleteDoc(doc(templatesCol(), id)),
+  saveProfile: (profile) => setDoc(profileDoc(), profile),
   reorderCategories(ids) {
     const batch = writeBatch(db);
     ids.forEach((id, i) => batch.update(doc(categoriesCol(), id), { order: i }));

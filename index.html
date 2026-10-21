@@ -119,13 +119,13 @@
         <div class="profile-photo" id="profile-photo" aria-hidden="true"></div>
         <div class="profile-text">
           <p id="profile-name" class="profile-name"></p>
+          <p id="profile-bio" class="profile-bio"></p>
           <p id="profile-email" class="profile-email"></p>
         </div>
       </div>
 
       <ul class="settings-list">
-        <li><button class="settings-item" type="button" data-soon="알림 설정">알림 설정<span class="soon-badge">준비 중</span></button></li>
-        <li><button class="settings-item" type="button" data-soon="프로필 설정">프로필 설정<span class="soon-badge">준비 중</span></button></li>
+        <li><button id="open-profile" class="settings-item" type="button">프로필 설정</button></li>
         <li><button class="settings-item" type="button" data-soon="테마 설정">테마 설정<span class="soon-badge">준비 중</span></button></li>
       </ul>
 
@@ -202,6 +202,15 @@
       <button id="block-close" class="icon-button" type="button" aria-label="닫기">×</button>
     </div>
     <div id="block-body"></div>
+  </dialog>
+
+  <!-- 프로필 설정 -->
+  <dialog id="profile-dialog" class="sheet routine-sheet" aria-labelledby="profile-title">
+    <div class="sheet-head">
+      <h2 id="profile-title">프로필 설정</h2>
+      <button id="profile-close" class="icon-button" type="button" aria-label="닫기">×</button>
+    </div>
+    <div id="profile-body"></div>
   </dialog>
 
   <!-- 플래너 틀 -->
