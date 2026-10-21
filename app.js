@@ -7,6 +7,7 @@ import {
   subscribe,
   seedIfEmpty,
   remote,
+  social,
 } from './cloud.js';
 
 // ===== 예전 저장 위치 =====
@@ -168,10 +169,23 @@ const CHECK_ICON = `<svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-wi
 const PLUS_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 const MORE_ICON = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="12.5" cy="8" r="1.4"/></svg>';
 const GRIP_ICON = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.2"/><circle cx="10" cy="4" r="1.2"/><circle cx="6" cy="8" r="1.2"/><circle cx="10" cy="8" r="1.2"/><circle cx="6" cy="12" r="1.2"/><circle cx="10" cy="12" r="1.2"/></svg>';
+const EYE_ICON = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 10S5.5 4.5 10 4.5 17.5 10 17.5 10 14.5 15.5 10 15.5 2.5 10 2.5 10z"/><circle cx="10" cy="10" r="2.5"/></svg>';
+const EYE_OFF_ICON = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l12 12M8.2 5a7 7 0 0 1 1.8-.3C14.5 4.7 17.5 10 17.5 10a13 13 0 0 1-2.2 2.8M12 14.9a6.5 6.5 0 0 1-2 .4C5.5 15.3 2.5 10 2.5 10a13 13 0 0 1 2.6-3.1"/></svg>';
+const PEOPLE_ICON = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="7" r="2.8"/><path d="M2.5 16c.6-2.8 2.6-4.3 5-4.3s4.4 1.5 5 4.3M13 4.5a2.6 2.6 0 0 1 0 5M14.5 12c1.6.4 2.6 1.7 3 4"/></svg>';
 const TRASH_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>';
 
 function findCategory(id) {
   return categories.find((c) => c.id === id);
+}
+
+// ===== 친구에게 보이는지 =====
+// 할 일마다 shared(친구에게 보임) 표시를 저장해 두고, 보안 규칙이 shared인 것만 친구에게 보여 줘요
+function categoryHidden(id) {
+  return findCategory(id)?.hidden === true;
+}
+
+function isShared(todo) {
+  return !todo.hideFromFriends && !categoryHidden(todo.categoryId);
 }
 
 function categoryColor(id) {
@@ -289,6 +303,7 @@ function virtualTodosFor(key) {
 // id로 진짜 할 일을 찾아요. 가상 할 일이면 그 자리에서 진짜로 만들어요
 function realize(id) {
   if (!id.startsWith('v:')) return todos.find((t) => t.id === id);
+  if (viewing) return null; // 친구 것은 만들 수 없어요
   const [, routineId, key] = id.split(':');
   const existing = todos.find((t) => t.routineId === routineId && t.routineDate === key);
   if (existing) return existing;
@@ -306,6 +321,7 @@ function realize(id) {
     deleted: false,
     routineId,
     routineDate: key,
+    shared: !categoryHidden(r.categoryId),
     order: nextOrder(key),
     createdAt: Date.now(),
   };
@@ -342,6 +358,7 @@ function createTodo(title, categoryId) {
     doneAt: null,
     archived: false,
     archivedAt: null,
+    shared: !categoryHidden(categoryId),
     order: nextOrder(dateKey),
     createdAt: Date.now(),
   };
@@ -356,6 +373,7 @@ function addTodo(title, categoryId) {
 }
 
 function toggleTodo(id) {
+  if (viewing) return; // 친구 할 일은 보기만 해요
   const todo = realize(id);
   if (!todo) return;
   todo.done = !todo.done;
@@ -414,6 +432,8 @@ function copyTodo(todo, dateKey) {
     doneAt: null,
     archived: false,
     archivedAt: null,
+    hideFromFriends: !!todo.hideFromFriends,
+    shared: isShared(todo),
     order: nextOrder(dateKey),
     createdAt: Date.now(),
   };
@@ -532,7 +552,7 @@ function addCategory() {
   const used = new Set(categories.map((c) => c.color));
   const color = PALETTE.find((p) => !used.has(p)) || PALETTE[0];
   const order = categories.length ? Math.max(...categories.map((c) => c.order ?? 0)) + 1 : 0;
-  const cat = { id: newId(), name: '새 카테고리', color, order };
+  const cat = { id: newId(), name: '새 카테고리', color, order, hidden: false };
   categories.push(cat);
   save(remote.addCategory(cat));
   commitCategories();
@@ -552,6 +572,29 @@ function renameCategory(id, name) {
     save(remote.updateCategory(id, { name: trimmed }));
     render();
   }
+}
+
+// 카테고리를 친구에게 숨기거나 보이기 → 그 카테고리의 할 일·루틴도 같이 바뀌어요
+function setCategoryHidden(id, hidden) {
+  const cat = findCategory(id);
+  if (!cat) return;
+  cat.hidden = hidden;
+  save(remote.updateCategory(id, { hidden }));
+  const todoChanges = [];
+  for (const t of todos) {
+    if (t.categoryId !== id) continue;
+    const shared = isShared(t);
+    if (t.shared !== shared) {
+      t.shared = shared;
+      todoChanges.push([t.id, { shared }]);
+    }
+  }
+  const routineChanges = routines
+    .filter((r) => r.categoryId === id && r.shared !== !hidden)
+    .map((r) => { r.shared = !hidden; return [r.id, { shared: !hidden }]; });
+  if (todoChanges.length) save(remote.updateTodos(todoChanges));
+  if (routineChanges.length) save(remote.updateRoutines(routineChanges));
+  renderCategoryList();
 }
 
 function recolorCategory(id, color) {
@@ -704,7 +747,7 @@ function renderDay() {
 
   // 선택하는 중에는 할 일을 새로 추가하지 않아요
   const sections = categories.map((cat) =>
-    renderSection(cat, dayTodos.filter((t) => t.categoryId === cat.id), !selecting)
+    renderSection(cat, dayTodos.filter((t) => t.categoryId === cat.id), !selecting && !viewing)
   );
 
   // 지워진 카테고리에 있던 할 일
@@ -735,6 +778,7 @@ function renderProgress() {
   $progressFill.style.width = total ? `${(doneCount / total) * 100}%` : '0';
   $progressText.textContent = total ? `${doneCount} / ${total} 완료` : '할 일 없음';
   $empty.hidden = total > 0;
+  $empty.textContent = viewing ? '이 날 공개된 할 일이 없어요.' : '카테고리 이름을 눌러 할 일을 추가해 보세요.';
 
   const undone = total - doneCount;
   $postpone.hidden = !undone || selecting;
@@ -834,6 +878,7 @@ function renderItem(todo) {
   check.innerHTML = CHECK_ICON;
   check.setAttribute('aria-label', todo.done ? '완료 취소' : '완료');
   check.addEventListener('click', () => toggleTodo(todo.id));
+  check.disabled = !!viewing;
 
   // 할 일 이름을 누르면 메뉴가 열려요 (투두메이트처럼)
   const title = document.createElement('button');
@@ -863,7 +908,7 @@ let dropping = false; // 놓는 애니메이션 중에는 화면을 다시 그�
 let suppressClick = false;
 
 function pressTodo(e, li) {
-  if (!e.isPrimary || e.button > 0 || e.target.closest('input')) return;
+  if (viewing || !e.isPrimary || e.button > 0 || e.target.closest('input')) return;
   const start = { x: e.clientX, y: e.clientY };
   const touch = e.pointerType !== 'mouse';
   let timer = null;
@@ -1005,7 +1050,10 @@ function saveTodoOrder(li) {
       if (!todo) continue;
       const fields = {};
       if (todo.order !== order) fields.order = order;
-      if (catId && item === li && todo.categoryId !== catId) fields.categoryId = catId;
+      if (catId && item === li && todo.categoryId !== catId) {
+        fields.categoryId = catId;
+        fields.shared = isShared({ ...todo, categoryId: catId }); // 숨긴 카테고리로 옮기면 친구에게도 숨겨져요
+      }
       if (Object.keys(fields).length) {
         Object.assign(todo, fields);
         save(remote.updateTodo(todo.id, fields));
@@ -1068,6 +1116,10 @@ let sheetIds = [];
 let sheetMode = 'menu';
 
 function openTodoSheet(id) {
+  if (viewing) {
+    showToast('친구 할 일에 이모지·댓글 달기는 곧 만들 거예요');
+    return;
+  }
   const todo = realize(id);
   if (!todo) return;
   sheetIds = [todo.id];
@@ -1234,19 +1286,32 @@ function renderEditForm(todo) {
     type: 'submit', className: 'primary-button', textContent: '저장',
   }));
 
+  // 이 할 일만 친구에게 숨기기
+  const hide = el('input', { type: 'checkbox', checked: !!todo.hideFromFriends });
+  const catHidden = categoryHidden(todo.categoryId);
+  const hideRow = el('label', { className: 'check-row' }, [hide, '친구에게 숨기기']);
+  if (catHidden) {
+    hide.checked = true;
+    hide.disabled = true;
+    hideRow.append(el('span', { className: 'sheet-hint', textContent: ' (카테고리 전체가 숨겨져 있어요)' }));
+  }
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+    const fields = {};
     const value = input.value.trim();
-    if (value && value !== todo.title) {
-      todo.title = value;
-      save(remote.updateTodo(todo.id, { title: value }));
-    }
+    if (value && value !== todo.title) fields.title = value;
+    if (!catHidden && hide.checked !== !!todo.hideFromFriends) fields.hideFromFriends = hide.checked;
+    Object.assign(todo, fields);
+    if (todo.shared !== isShared(todo)) fields.shared = isShared(todo);
+    todo.shared = isShared(todo);
+    if (Object.keys(fields).length) save(remote.updateTodo(todo.id, fields));
     sheetMode = 'menu';
     render();
     renderTodoSheet();
   });
 
-  form.append(input, buttons);
+  form.append(input, hideRow, buttons);
   setTimeout(() => {
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
@@ -1571,6 +1636,7 @@ function saveRoutine() {
     title,
     categoryId: d.categoryId,
     repeat: { type: d.repeat.type, days: d.repeat.days, dates: d.repeat.dates, every: d.repeat.every },
+    shared: !categoryHidden(d.categoryId),
     start: d.start,
     end: d.end || null,
     order: d.order ?? routines.length,
@@ -2152,7 +2218,16 @@ function renderCategoryList() {
     del.setAttribute('aria-label', `${cat.name} 삭제`);
     del.addEventListener('click', () => deleteCategory(cat.id));
 
-    line.append(handle, swatch, name, del);
+    // 눈 버튼: 이 카테고리를 친구에게 숨기기
+    const eye = document.createElement('button');
+    eye.type = 'button';
+    eye.className = 'icon-button cat-eye' + (cat.hidden ? ' off' : '');
+    eye.innerHTML = cat.hidden ? EYE_OFF_ICON : EYE_ICON;
+    eye.setAttribute('aria-label', cat.hidden ? `${cat.name}: 친구에게 숨김 (눌러서 보이기)` : `${cat.name}: 친구에게 보임 (눌러서 숨기기)`);
+    eye.title = cat.hidden ? '친구에게 숨김' : '친구에게 보임';
+    eye.addEventListener('click', () => setCategoryHidden(cat.id, !cat.hidden));
+
+    line.append(handle, swatch, name, eye, del);
     li.append(line);
 
     if (pickingColorFor === cat.id) {
@@ -2385,6 +2460,8 @@ function renderProfile() {
   $bio.hidden = !view.bio;
   document.getElementById('profile-email').textContent = currentUser.email || '';
   fillAvatar(document.getElementById('profile-photo'), view);
+  if (!viewing) renderHomeProfile();
+  renderFriendStrip();
 }
 
 // 올린 사진을 가운데 정사각형으로 잘라 256×256으로 줄여요 (약 20~40KB)
@@ -2465,9 +2542,11 @@ function renderProfileForm() {
       bio: d.bio.trim(),
       photo: d.photoSource === 'custom' ? d.photo : '',
       photoSource: d.photoSource,
+      friendCode: profile?.friendCode || null,
       updatedAt: Date.now(),
     };
     save(remote.saveProfile(profile));
+    publishProfile();
     renderProfile();
     $profileDialog.close();
   });
@@ -2479,6 +2558,285 @@ function renderProfileForm() {
     error,
     el('div', { className: 'date-form-buttons' }, [cancel, ok]),
   ]));
+}
+
+// ===== 친구 =====
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 헷갈리는 O·0·I·1은 빼요
+let follows = { mine: [], toMe: [] };
+const people = new Map(); // 계정 → 공개 프로필
+const peopleStops = new Map();
+let stopFollows = null;
+let socialStarted = false;
+let socialBroken = false;
+let viewing = null; // 보고 있는 친구 계정 (null이면 나)
+let mineSaved = null; // 친구 할 일을 보는 동안 맡아 둔 내 데이터
+let stopFriend = null;
+
+const $friendStrip = document.getElementById('friend-strip');
+const $friendLists = document.getElementById('friend-lists');
+const $followMsg = document.getElementById('follow-msg');
+
+function watchPerson(personUid) {
+  if (peopleStops.has(personUid)) return;
+  peopleStops.set(personUid, social.watchProfile(personUid, (p) => {
+    if (p) people.set(personUid, p);
+    renderFriendStrip();
+    renderFriendLists();
+    if (viewing === personUid) renderHomeProfile();
+  }));
+}
+
+function personName(personUid) {
+  return people.get(personUid)?.nickname || '친구';
+}
+
+function personView(personUid) {
+  const p = people.get(personUid) || {};
+  return { nickname: p.nickname || '친구', bio: p.bio || '', photo: p.photo || null };
+}
+
+const followingIds = () => follows.mine.filter((f) => f.status === 'accepted').map((f) => f.to);
+
+// 친구 코드가 없으면 새로 만들어요 (다른 사람과 겹치지 않게 확인)
+async function ensureFriendCode() {
+  if (profile?.friendCode) return profile.friendCode;
+  for (let i = 0; i < 5; i++) {
+    const code = Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+    if (await social.findByCode(code)) continue;
+    profile = { ...(profile || {}), friendCode: code };
+    save(remote.saveProfile(profile));
+    return code;
+  }
+  return null;
+}
+
+// 친구에게 보이는 공개 프로필을 최신으로
+function publishProfile() {
+  if (!profile?.friendCode) return;
+  const view = profileView();
+  social.savePublicProfile({ nickname: view.nickname, bio: view.bio, photo: view.photo || '', friendCode: profile.friendCode })
+    .catch(markSocialBroken);
+}
+
+function markSocialBroken(err) {
+  console.error(err);
+  socialBroken = true;
+  renderFriendLists();
+}
+
+async function startSocial() {
+  if (socialStarted) return;
+  socialStarted = true;
+  try {
+    await ensureFriendCode();
+  } catch (err) {
+    markSocialBroken(err);
+    return;
+  }
+  document.getElementById('my-code').textContent = formatCode(profile.friendCode);
+  publishProfile();
+  stopFollows = social.watchFollows((state) => {
+    follows = state;
+    for (const f of [...state.mine, ...state.toMe]) watchPerson(f.from === currentUser.uid ? f.to : f.from);
+    // 더는 친구가 아니면 내 화면으로
+    if (viewing && !followingIds().includes(viewing)) viewMe();
+    renderFriendStrip();
+    renderFriendLists();
+    const pending = state.toMe.filter((f) => f.status === 'pending').length;
+    const badge = document.getElementById('me-badge');
+    badge.hidden = !pending;
+    badge.textContent = pending;
+  }, markSocialBroken);
+}
+
+function stopSocial() {
+  if (stopFollows) stopFollows();
+  stopFollows = null;
+  for (const stop of peopleStops.values()) stop();
+  peopleStops.clear();
+  people.clear();
+  follows = { mine: [], toMe: [] };
+  socialStarted = false;
+  socialBroken = false;
+}
+
+const formatCode = (code) => (code ? `${code.slice(0, 3)}-${code.slice(3)}` : '······');
+
+// ----- 홈 맨 위 -----
+function renderHomeProfile() {
+  const view = viewing ? personView(viewing) : profileView();
+  fillAvatar(document.getElementById('home-photo'), view);
+  document.getElementById('home-name').textContent = view.nickname;
+  const $bio = document.getElementById('home-bio');
+  $bio.textContent = view.bio;
+  $bio.hidden = !view.bio;
+}
+
+function friendChip(label, view, active, onClick) {
+  const avatarBox = el('span', { className: 'profile-photo chip-photo' });
+  fillAvatar(avatarBox, view);
+  const chip = el('button', { type: 'button', className: 'friend-chip' + (active ? ' on' : '') }, [avatarBox, el('span', { textContent: label })]);
+  chip.setAttribute('aria-pressed', String(active));
+  chip.addEventListener('click', onClick);
+  return chip;
+}
+
+function renderFriendStrip() {
+  if (!currentUser) return;
+  const chips = [friendChip('나', profileView(), !viewing, viewMe)];
+  for (const id of followingIds()) {
+    chips.push(friendChip(personName(id), personView(id), viewing === id, () => viewFriend(id)));
+  }
+  const add = el('button', { type: 'button', className: 'friend-chip add', textContent: '+ 친구' });
+  add.addEventListener('click', () => {
+    showTab('me');
+    document.getElementById('follow-code').focus();
+  });
+  chips.push(add);
+  $friendStrip.replaceChildren(...chips);
+}
+
+function setFriendsCollapsed(collapsed) {
+  $friendStrip.hidden = collapsed;
+  const button = document.getElementById('toggle-friends');
+  button.setAttribute('aria-expanded', String(!collapsed));
+  button.setAttribute('aria-label', collapsed ? '친구 칸 펴기' : '친구 칸 접기');
+  try { localStorage.setItem('mytodo.friendsCollapsed', collapsed ? '1' : ''); } catch { /* 저장 못 해도 괜찮아요 */ }
+}
+
+// ----- 친구 할 일 보기 (보기 전용) -----
+function viewFriend(friendUid) {
+  if (viewing === friendUid) return;
+  if (selecting) stopSelecting();
+  if (!viewing) mineSaved = { todos, categories, routines };
+  if (stopFriend) stopFriend();
+  viewing = friendUid;
+  todos = [];
+  categories = [];
+  routines = [];
+  addingCategoryId = null;
+  document.body.classList.add('viewing-friend');
+  render();
+  renderHomeProfile();
+  renderFriendStrip();
+  stopFriend = social.watchFriend(friendUid, {
+    onTodos: (list) => { if (viewing === friendUid) { todos = list; scheduleRender(); } },
+    onCategories: (list) => { if (viewing === friendUid) { categories = list; scheduleRender(); } },
+    onRoutines: (list) => { if (viewing === friendUid) { routines = list; scheduleRender(); } },
+  }, (err) => {
+    console.error(err);
+    viewMe();
+  });
+}
+
+function viewMe() {
+  if (!viewing) return;
+  if (stopFriend) stopFriend();
+  stopFriend = null;
+  viewing = null;
+  ({ todos, categories, routines } = mineSaved);
+  mineSaved = null;
+  document.body.classList.remove('viewing-friend');
+  render();
+  renderHomeProfile();
+  renderFriendStrip();
+}
+
+// ----- 개인정보 탭의 친구 목록 -----
+function personRow(personUid, ...buttons) {
+  const avatarBox = el('span', { className: 'profile-photo chip-photo' });
+  fillAvatar(avatarBox, personView(personUid));
+  return el('li', { className: 'person-row' }, [avatarBox, el('span', { className: 'person-name', textContent: personName(personUid) }), ...buttons]);
+}
+
+function smallButton(label, onClick, extra = '') {
+  const b = el('button', { type: 'button', className: `chip-button ${extra}`.trim(), textContent: label });
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+function renderFriendLists() {
+  if (!currentUser) return;
+  if (socialBroken) {
+    $friendLists.replaceChildren(el('p', { className: 'form-error', textContent: '친구 기능을 쓰려면 Firebase 보안 규칙을 새것으로 바꿔 주세요.' }));
+    return;
+  }
+  const me = currentUser.uid;
+  const requests = follows.toMe.filter((f) => f.status === 'pending');
+  const followers = follows.toMe.filter((f) => f.status === 'accepted');
+  const followingSet = new Set(follows.mine.map((f) => f.to));
+
+  const section = (title, rows, emptyText) => [
+    el('p', { className: 'field-label', textContent: `${title} ${rows.length ? rows.length : ''}`.trim() }),
+    rows.length ? el('ul', { className: 'person-list' }, rows) : el('p', { className: 'sheet-hint', textContent: emptyText }),
+  ];
+
+  $friendLists.replaceChildren(
+    ...(requests.length ? section('받은 요청', requests.map((f) => personRow(f.from,
+      smallButton('수락', () => save(social.acceptFollow(f.from)), 'on'),
+      smallButton('거절', () => save(social.removeFollow(f.from, me))),
+    )), '') : []),
+    ...section('내가 보는 친구', follows.mine.map((f) => personRow(f.to,
+      el('span', { className: 'person-state', textContent: f.status === 'accepted' ? '' : '수락 기다리는 중' }),
+      smallButton(f.status === 'accepted' ? '끊기' : '취소', () => save(social.removeFollow(me, f.to))),
+    )), '친구 코드로 팔로우 요청을 보내 보세요.'),
+    ...section('나를 보는 친구', followers.map((f) => personRow(f.from,
+      ...(followingSet.has(f.from) ? [] : [smallButton('맞팔로우', () => save(social.requestFollow(f.from)), 'on')]),
+      smallButton('삭제', () => save(social.removeFollow(f.from, me))),
+    )), '아직 없어요.'),
+  );
+}
+
+document.getElementById('follow-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('follow-code');
+  const code = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  $followMsg.className = 'follow-msg';
+  const say = (text, bad = true) => {
+    $followMsg.textContent = text;
+    $followMsg.classList.toggle('bad', bad);
+  };
+  if (code.length !== 6) return say('친구 코드는 6자리예요.');
+  if (code === profile?.friendCode) return say('내 코드예요. 친구의 코드를 넣어 주세요.');
+  try {
+    const person = await social.findByCode(code);
+    if (!person) return say('그 코드의 친구를 찾지 못했어요.');
+    if (follows.mine.some((f) => f.to === person.uid)) return say(`이미 ${person.nickname}님에게 요청했어요.`);
+    await social.requestFollow(person.uid);
+    input.value = '';
+    say(`${person.nickname}님에게 요청을 보냈어요. 수락하면 할 일을 볼 수 있어요.`, false);
+  } catch (err) {
+    markSocialBroken(err);
+    say('요청을 보내지 못했어요.');
+  }
+});
+
+document.getElementById('copy-code').addEventListener('click', async (e) => {
+  if (!profile?.friendCode) return;
+  try {
+    await navigator.clipboard.writeText(profile.friendCode);
+    e.target.textContent = '복사됨';
+    setTimeout(() => { e.target.textContent = '복사'; }, 1500);
+  } catch { /* 복사가 안 되는 브라우저면 코드를 보고 직접 알려 주면 돼요 */ }
+});
+
+document.getElementById('toggle-friends').addEventListener('click', () => setFriendsCollapsed(!$friendStrip.hidden));
+try { setFriendsCollapsed(localStorage.getItem('mytodo.friendsCollapsed') === '1'); } catch { setFriendsCollapsed(false); }
+
+// 예전에 만든 할 일·카테고리·루틴에 '친구에게 보이는지' 표시를 채워 넣어요 (한 번만)
+let sharingMigrated = false;
+function migrateSharing() {
+  if (sharingMigrated || viewing) return;
+  sharingMigrated = true;
+  for (const c of categories) {
+    if (typeof c.hidden === 'boolean') continue;
+    c.hidden = false;
+    save(remote.updateCategory(c.id, { hidden: false }));
+  }
+  const todoChanges = todos.filter((t) => typeof t.shared !== 'boolean').map((t) => { t.shared = isShared(t); return [t.id, { shared: t.shared }]; });
+  const routineChanges = routines.filter((r) => typeof r.shared !== 'boolean').map((r) => { r.shared = !categoryHidden(r.categoryId); return [r.id, { shared: r.shared }]; });
+  if (todoChanges.length) save(remote.updateTodos(todoChanges));
+  if (routineChanges.length) save(remote.updateRoutines(routineChanges));
 }
 
 document.getElementById('open-profile').addEventListener('click', openProfileForm);
@@ -2565,6 +2923,13 @@ if (!isConfigured) {
       routines = [];
       blocks = [];
       plannerTemplates = [];
+      if (stopFriend) stopFriend();
+      stopFriend = null;
+      viewing = null;
+      mineSaved = null;
+      document.body.classList.remove('viewing-friend');
+      stopSocial();
+      sharingMigrated = false;
       profile = null;
       currentUser = null;
       for (const dialog of [$catDialog, $todoSheet, $archiveDialog, $routineDialog, $blockDialog, $templateDialog, $profileDialog]) dialog.close();
@@ -2589,15 +2954,22 @@ if (!isConfigured) {
     const ready = () => {
       if (!gotTodos || !gotCategories || !gotRoutines || !gotBlocks || !gotTemplates) return;
       showScreen('app');
+      migrateSharing();
       scheduleRender();
     };
     stopSync = subscribe({
-      onTodos: (list) => { todos = list; gotTodos = true; ready(); },
-      onCategories: (list) => { categories = list; gotCategories = true; ready(); },
-      onRoutines: (list) => { routines = list; gotRoutines = true; ready(); },
+      // 친구 할 일을 보는 중이면, 내 데이터는 맡아 둔 곳에 넣어 둬요
+      onTodos: (list) => { if (viewing) mineSaved.todos = list; else todos = list; gotTodos = true; ready(); },
+      onCategories: (list) => { if (viewing) mineSaved.categories = list; else categories = list; gotCategories = true; ready(); },
+      onRoutines: (list) => { if (viewing) mineSaved.routines = list; else routines = list; gotRoutines = true; ready(); },
       onBlocks: (list) => { blocks = list; gotBlocks = true; ready(); },
       onTemplates: (list) => { plannerTemplates = list; gotTemplates = true; ready(); },
-      onProfile: (data) => { profile = data; renderProfile(); },
+      onProfile: (data) => {
+        profile = data;
+        renderProfile();
+        publishProfile();
+        startSocial(); // 프로필을 받은 뒤에 시작해요 (친구 코드가 겹쳐 만들어지지 않게)
+      },
       onError: (err) => {
         showLoginError(err);
         logout();

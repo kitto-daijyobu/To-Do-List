@@ -20,6 +20,9 @@ import {
   writeBatch,
   onSnapshot,
   getDocsFromServer,
+  getDocs,
+  query,
+  where,
 } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 
@@ -97,7 +100,58 @@ export async function seedIfEmpty(categories, todos) {
   }
 }
 
+// 여러 문서를 한 번에 고쳐요 ([id, 바꿀 내용] 목록). 400개씩 나눠 보내요
+async function updateMany(colRef, changes) {
+  for (let i = 0; i < changes.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const [id, fields] of changes.slice(i, i + 400)) batch.update(doc(colRef(), id), fields);
+    await batch.commit();
+  }
+}
+
+// ===== 친구 =====
+// profiles/{계정}: 친구에게 보이는 공개 프로필 (닉네임·사진·한 줄 소개·친구 코드)
+// follows/{보는사람_보이는사람}: 팔로우 요청 (pending) → 수락 (accepted)
+export const social = {
+  savePublicProfile: (p) => setDoc(doc(db, 'profiles', uid), { ...p, uid }),
+  async findByCode(code) {
+    const snap = await getDocs(query(collection(db, 'profiles'), where('friendCode', '==', code)));
+    return snap.empty ? null : snap.docs[0].data();
+  },
+  watchProfile: (otherUid, callback) =>
+    onSnapshot(doc(db, 'profiles', otherUid), (s) => callback(s.exists() ? s.data() : null), () => callback(null)),
+  requestFollow: (to) => setDoc(doc(db, 'follows', `${uid}_${to}`), { from: uid, to, status: 'pending', createdAt: Date.now() }),
+  acceptFollow: (from) => updateDoc(doc(db, 'follows', `${from}_${uid}`), { status: 'accepted', acceptedAt: Date.now() }),
+  removeFollow: (from, to) => deleteDoc(doc(db, 'follows', `${from}_${to}`)),
+  watchFollows(callback, onError) {
+    const state = { mine: [], toMe: [] };
+    const stops = [
+      onSnapshot(query(collection(db, 'follows'), where('from', '==', uid)), (s) => {
+        state.mine = s.docs.map((d) => d.data());
+        callback(state);
+      }, onError),
+      onSnapshot(query(collection(db, 'follows'), where('to', '==', uid)), (s) => {
+        state.toMe = s.docs.map((d) => d.data());
+        callback(state);
+      }, onError),
+    ];
+    return () => stops.forEach((stop) => stop());
+  },
+  // 친구의 공개된 할 일·카테고리·루틴만 읽어요 (숨긴 건 보안 규칙이 막아요)
+  watchFriend(friendUid, { onTodos, onCategories, onRoutines }, onError) {
+    const col = (name) => collection(db, 'users', friendUid, name);
+    const stops = [
+      onSnapshot(query(col('todos'), where('shared', '==', true)), (s) => onTodos(s.docs.map((d) => d.data())), onError),
+      onSnapshot(query(col('categories'), where('hidden', '==', false)), (s) => onCategories(s.docs.map((d) => d.data()).sort((a, b) => a.order - b.order)), onError),
+      onSnapshot(query(col('routines'), where('shared', '==', true)), (s) => onRoutines(s.docs.map((d) => d.data())), onError),
+    ];
+    return () => stops.forEach((stop) => stop());
+  },
+};
+
 export const remote = {
+  updateTodos: (changes) => updateMany(todosCol, changes),
+  updateRoutines: (changes) => updateMany(routinesCol, changes),
   addTodo: (todo) => setDoc(doc(todosCol(), todo.id), todo),
   updateTodo: (id, fields) => updateDoc(doc(todosCol(), id), fields),
   deleteTodo: (id) => deleteDoc(doc(todosCol(), id)),

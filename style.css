@@ -1030,6 +1030,145 @@ button.todo-title {
   color: var(--text-muted);
 }
 
+/* ===== 홈 맨 위: 친구 칸 + 내 프로필 ===== */
+.home-top { display: grid; gap: 12px; }
+
+@media (min-width: 900px) {
+  .home-top { grid-column: 1 / -1; }
+}
+
+.home-top-bar { display: flex; justify-content: flex-end; }
+
+.friend-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.friend-strip::-webkit-scrollbar { display: none; }
+.friend-strip[hidden] { display: none; }
+
+.friend-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.friend-chip.on { color: var(--primary); border-color: var(--primary); }
+.friend-chip.add { padding: 9px 14px; color: var(--primary); box-shadow: none; background: var(--primary-soft); }
+
+.profile-photo.chip-photo { width: 30px; height: 30px; font-size: 13px; }
+
+.me-row { display: flex; align-items: center; gap: 14px; }
+.profile-photo.home-photo { width: 56px; height: 56px; font-size: 22px; }
+
+.home-name {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.home-bio {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.home-bio[hidden] { display: none; }
+
+/* 친구 할 일을 보는 중: 보기 전용 */
+body.viewing-friend .day-actions,
+body.viewing-friend .postpone-link { display: none; }
+body.viewing-friend .check { cursor: default; }
+
+/* 개인정보 탭의 친구 */
+.section-title {
+  margin: 8px 0 10px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.friend-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.code-row { display: flex; align-items: center; justify-content: space-between; }
+.code-row .field-label { margin: 0; }
+
+.my-code {
+  margin: 2px 0 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+}
+
+.follow-msg { margin: 0; font-size: 14px; color: var(--primary); }
+.follow-msg.bad { color: var(--danger); }
+.follow-msg:empty { display: none; }
+
+.person-list { list-style: none; margin: 0; padding: 0; }
+
+.person-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.person-row:last-child { border-bottom: none; }
+.person-name { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.person-state { font-size: 12px; color: var(--text-muted); }
+
+.tab { position: relative; }
+
+.tab-badge {
+  position: absolute;
+  top: 2px;
+  left: calc(50% + 6px);
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 17px;
+  color: #fff;
+  background: var(--danger);
+  border-radius: 999px;
+}
+
+.tab-badge[hidden] { display: none; }
+
+.check-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.check-row input { width: 18px; height: 18px; accent-color: var(--primary); }
+.cat-eye.off { color: var(--danger); }
+
 /* ===== 플래너 ===== */
 .planner-head {
   display: flex;
@@ -1711,7 +1850,7 @@ body[data-screen="app"][data-tab="me"] #view-me { display: block; }
   margin-bottom: 6px;
 }
 
-.profile-photo-big { width: 96px; height: 96px; font-size: 36px; }
+.profile-photo.profile-photo-big { width: 96px; height: 96px; font-size: 36px; }
 .chip-button.on { color: #fff; background: var(--primary); }
 .char-count { font-weight: 400; margin-left: 4px; }
 

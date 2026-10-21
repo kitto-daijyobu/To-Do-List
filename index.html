@@ -42,6 +42,23 @@
 
   <!-- ===== 홈: 달력 + 할 일 ===== -->
   <main class="app" id="view-home">
+    <!-- 맨 위: 친구 칸(접었다 폈다) + 내 프로필 -->
+    <section class="home-top" aria-label="프로필과 친구">
+      <div class="home-top-bar">
+        <button id="toggle-friends" class="menu-button" type="button" aria-expanded="true" aria-controls="friend-strip" aria-label="친구 칸 접기">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="7" r="2.8"/><path d="M2.5 16c.6-2.8 2.6-4.3 5-4.3s4.4 1.5 5 4.3M13 4.5a2.6 2.6 0 0 1 0 5M14.5 12c1.6.4 2.6 1.7 3 4"/></svg>
+        </button>
+      </div>
+      <div id="friend-strip" class="friend-strip" aria-label="누구의 할 일을 볼까요"></div>
+      <div class="me-row">
+        <div id="home-photo" class="profile-photo home-photo" aria-hidden="true"></div>
+        <div class="profile-text">
+          <p id="home-name" class="home-name"></p>
+          <p id="home-bio" class="home-bio"></p>
+        </div>
+      </div>
+    </section>
+
     <section class="calendar" aria-label="달력">
       <div class="cal-header">
         <button id="cal-prev" class="cal-nav" type="button" aria-label="이전 달">
@@ -124,6 +141,23 @@
         </div>
       </div>
 
+      <h2 class="section-title">친구</h2>
+      <div class="friend-card">
+        <div class="code-row">
+          <div>
+            <p class="field-label">내 친구 코드</p>
+            <p id="my-code" class="my-code">······</p>
+          </div>
+          <button id="copy-code" class="chip-button" type="button">복사</button>
+        </div>
+        <form id="follow-form" class="item-add" autocomplete="off">
+          <input id="follow-code" class="edit-input" maxlength="8" placeholder="친구 코드 입력" autocapitalize="characters" aria-label="친구 코드">
+          <button class="primary-button" type="submit">팔로우 요청</button>
+        </form>
+        <p id="follow-msg" class="follow-msg" role="status"></p>
+        <div id="friend-lists"></div>
+      </div>
+
       <ul class="settings-list">
         <li><button id="open-profile" class="settings-item" type="button">프로필 설정</button></li>
         <li><button class="settings-item" type="button" data-soon="테마 설정">테마 설정<span class="soon-badge">준비 중</span></button></li>
@@ -165,6 +199,7 @@
     <button class="tab" type="button" data-tab="me">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.8-3.6 3.9-5.8 7.5-5.8s6.7 2.2 7.5 5.8"/></svg>
       <span>개인정보</span>
+      <span id="me-badge" class="tab-badge" hidden></span>
     </button>
   </nav>
 

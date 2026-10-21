@@ -61,5 +61,46 @@ export const remote = {
   reorderCategories: (ids) => later(() => ids.forEach((id, i) => data.categories.set(id, { ...data.categories.get(id), order: i }))),
 };
 
+remote.updateTodos = (changes) => later(() => changes.forEach(([id, f]) => data.todos.set(id, { ...data.todos.get(id), ...f })));
+remote.updateRoutines = (changes) => later(() => changes.forEach(([id, f]) => data.routines.set(id, { ...data.routines.get(id), ...f })));
+
+// 가짜 친구 한 명: 코드 FRIEND1, 공개 할 일 1개 + 숨긴 할 일 1개(숨긴 건 안 보여야 함)
+const FRIEND = { uid: 'friend-1', nickname: '서영이', bio: '같이 공부해요', photo: '', friendCode: 'FRIEND' };
+const follows = new Map();
+const followListeners = [];
+const emitFollows = () => {
+  const all = [...follows.values()];
+  for (const cb of followListeners) setTimeout(() => cb({ mine: all.filter((f) => f.from === 'test-user'), toMe: all.filter((f) => f.to === 'test-user') }), 0);
+};
+const publicProfiles = new Map([[FRIEND.uid, FRIEND]]);
+const today = new Date();
+const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+export const social = {
+  savePublicProfile: (p) => later(() => publicProfiles.set('test-user', { ...p, uid: 'test-user' })),
+  findByCode: async (code) => [...publicProfiles.values()].find((p) => p.friendCode === code) || null,
+  watchProfile: (id, cb) => { setTimeout(() => cb(publicProfiles.get(id) || null), 0); return () => {}; },
+  requestFollow: (to) => later(() => {
+    // 친구는 바로 수락해 줘요 (시험용)
+    follows.set(`test-user_${to}`, { from: 'test-user', to, status: 'accepted' });
+    emitFollows();
+  }),
+  acceptFollow: (from) => later(() => { follows.get(`${from}_test-user`).status = 'accepted'; emitFollows(); }),
+  removeFollow: (from, to) => later(() => { follows.delete(`${from}_${to}`); emitFollows(); }),
+  watchFollows: (cb) => { followListeners.push(cb); emitFollows(); return () => {}; },
+  watchFriend: (id, { onTodos, onCategories, onRoutines }) => {
+    setTimeout(() => {
+      onCategories([{ id: 'study', name: '공부', color: '#8E7CE0', order: 0, hidden: false }]);
+      onRoutines([]);
+      onTodos([
+        { id: 'f1', title: '영어 단어 30개', date: todayKey, categoryId: 'study', done: true, doneAt: 1, order: 0, shared: true },
+      ]);
+    }, 0);
+    return () => {};
+  },
+};
+// 친구가 나에게 보낸 요청 하나 (받은 요청 시험용)
+follows.set('friend-2_test-user', { from: 'friend-2', to: 'test-user', status: 'pending' });
+publicProfiles.set('friend-2', { uid: 'friend-2', nickname: '민지', bio: '', photo: '', friendCode: 'MINJI2' });
+
 // 시험할 때 다른 기기에서 바뀐 것처럼 흉내 내기
 window.__fake = { data, emit };
