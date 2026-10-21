@@ -336,14 +336,11 @@ button.cat-head:hover { filter: brightness(0.97); }
 .cat-plus svg { width: 12px; height: 12px; }
 
 /* ===== 할 일 목록 ===== */
+/* 흰 상자 없이 배경 위에 바로 놓여요 */
 .todo-list {
   list-style: none;
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   padding: 0;
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
 }
 
 .todo-list:empty { display: none; }
@@ -352,12 +349,13 @@ button.cat-head:hover { filter: brightness(0.97); }
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 52px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
+  min-height: 44px;
+  padding: 6px 6px 6px 8px;
+  border-radius: 10px;
+  transition: background 0.15s;
 }
 
-.todo-item:last-child { border-bottom: none; }
+.todo-item:hover { background: rgba(59, 110, 168, 0.05); }
 
 /* 동그란 체크 버튼 (끝내면 카테고리 색으로 채워져요) */
 .check {
@@ -426,9 +424,9 @@ button.check:hover { border-color: var(--cat); }
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 48px;
-  margin: 4px 4px 0;
-  padding: 8px 12px;
+  min-height: 44px;
+  margin-top: 2px;
+  padding: 6px 6px 6px 8px;
   border-bottom: 1.5px solid color-mix(in srgb, var(--cat) 55%, transparent);
 }
 
