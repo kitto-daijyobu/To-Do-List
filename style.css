@@ -412,28 +412,31 @@ button.check:hover { border-color: var(--cat); }
   text-decoration: line-through;
 }
 
-.delete {
+/* ⋯ 메뉴 버튼 */
+.more {
   flex-shrink: 0;
+  display: grid;
+  place-items: center;
   width: 32px;
   height: 32px;
   padding: 0;
-  font-size: 20px;
-  line-height: 1;
   color: #a3afbf;
   background: transparent;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  opacity: 0.6;
+  opacity: 0.7;
   transition: opacity 0.15s, color 0.15s, background 0.15s;
 }
 
-.todo-item:hover .delete,
-.delete:focus-visible { opacity: 1; }
+.more svg { width: 16px; height: 16px; }
 
-.delete:hover {
-  color: var(--danger);
-  background: #fbeeed;
+.todo-item:hover .more,
+.more:focus-visible { opacity: 1; }
+
+.more:hover {
+  color: var(--text-muted);
+  background: rgba(59, 110, 168, 0.08);
 }
 
 /* 새 할 일 입력줄 (배경 없이 카테고리 색 밑줄만) */
@@ -641,6 +644,158 @@ button.check:hover { border-color: var(--cat); }
 
 .cat-add:hover { background: #d6e3f3; }
 
+/* ===== 할 일 메뉴 ===== */
+.todo-sheet-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.todo-sheet-title::before {
+  content: "";
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  background: var(--cat);
+  border-radius: 50%;
+}
+
+#todo-sheet-body {
+  display: grid;
+  gap: 2px;
+}
+
+.sheet-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 12px;
+  font-size: 16px;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sheet-action:hover { background: var(--bg); }
+
+.sheet-action-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sheet-action.danger { color: var(--danger); }
+.sheet-action.danger:hover { background: #fbeeed; }
+
+.date-form { display: grid; gap: 16px; padding: 4px 4px 2px; }
+
+.date-form-label {
+  display: grid;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.date-input {
+  width: 100%;
+  padding: 12px 14px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+}
+
+.date-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.date-form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.date-form-buttons .text-button { padding: 10px 16px; font-size: 14px; }
+
+.primary-button {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.primary-button:hover { background: var(--primary-hover); }
+
+/* ===== 보관함 ===== */
+.sheet-hint {
+  margin: -4px 0 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.archive-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.archive-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 10px;
+  font-size: 15px;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.archive-item:hover { background: var(--bg); }
+.archive-item .cat-dot { flex-shrink: 0; }
+
+.archive-title {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.archive-from {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.archive-empty {
+  margin: 20px 0 8px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
 /* ===== 화면 전환: 불러오는 중 / 로그인 / 할 일 ===== */
 .loading-screen,
 .login-screen { display: none; }
@@ -768,4 +923,13 @@ body[data-screen="login"] .login-screen {
   .app { padding-top: 20px; gap: 24px; }
   .calendar { padding: 14px 8px 10px; }
   .day-title { font-size: 24px; }
+
+  /* 할 일 메뉴는 화면 아래에서 올라와요 */
+  .action-sheet {
+    width: 100%;
+    max-width: 100%;
+    margin: auto 0 0;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+  }
 }
