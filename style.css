@@ -3483,3 +3483,57 @@ body.no-progress .progress { display: none; }
 [data-theme="wish"] .cat-head { padding: 4px 8px 4px 14px; background: var(--cat-soft); }
 [data-theme="wish"] .cat-title { padding: 0; background: none; border-radius: 0; }
 [data-theme="wish"] .cat-head .cat-plus { position: static; transform: none; width: 20px; height: 20px; }:root .sheet-action-icon { width: 28px; height: 28px; }
+
+/* 위시코어: 날짜 제목 작게, '오늘' 옆 클로버 빼기 */
+[data-theme="wish"] .day-title { font-size: 21px; margin-bottom: 6px; }
+[data-theme="wish"] .day-label::after { content: none; }
+
+/* =====================================================================
+   기본 테마 다듬기 (색은 그대로, 모양만 정리)
+   ===================================================================== */
+/* 상자 없애기: 달력은 바탕 위에 바로, 설정·프로필 카드는 그림자 없이 */
+[data-theme="base"] .calendar { padding: 4px 2px 0; background: transparent; box-shadow: none; border-radius: 0; }
+[data-theme="base"] .settings-list,
+[data-theme="base"] .profile-card,
+[data-theme="base"] .study-card { box-shadow: none; }
+[data-theme="base"] .cal-header { margin-bottom: 6px; }
+[data-theme="base"] .cal-title { font-size: 15px; min-width: 0; }
+[data-theme="base"] .cal-weekdays span { padding-bottom: 4px; font-size: 11px; }
+[data-theme="base"] .cal-grid { row-gap: 2px; }
+[data-theme="base"] .cal-num { font-size: 11.5px; }
+/* 크기 정리: 프로필 한 단계 작게 */
+[data-theme="base"] .profile-photo.home-photo { width: 42px; height: 42px; font-size: 16px; }
+[data-theme="base"] .home-name { font-size: 15.5px; }
+[data-theme="base"] .home-bio { font-size: 12.5px; }
+[data-theme="base"] .view-title { font-size: 21px; }
+/* 카테고리 이름표: 연회색 바탕 + 카테고리 색 글씨, 점 없이 */
+[data-theme="base"] .cat-section,
+[data-theme="base"] .cat-section.soft-color { --cat-soft: #e9eef5; }
+[data-theme="base"] .cat-head { padding: 5px 6px 5px 12px; font-weight: 700; color: var(--cat); }
+[data-theme="base"] .cat-section.soft-color .cat-head { color: var(--cat-ink); }
+[data-theme="base"] .cat-dot { display: none; }
+[data-theme="base"] .cat-plus { width: 20px; height: 20px; color: var(--text); background: #fff; }
+/* 체크 칸 = 네잎 클로버: 안 한 일은 연회색, 끝낸 일은 카테고리 색 + 흰 ✓ */
+[data-theme="base"] .check,
+[data-theme="base"] .pick-box {
+  border: none;
+  border-radius: 0;
+  background: var(--clover-empty);
+  clip-path: path('M1.125 5.85a4.725 4.725 0 1 0 9.45 0a4.725 4.725 0 1 0 -9.45 0ZM7.425 5.85a4.725 4.725 0 1 0 9.45 0a4.725 4.725 0 1 0 -9.45 0ZM7.425 12.15a4.725 4.725 0 1 0 9.45 0a4.725 4.725 0 1 0 -9.45 0ZM1.125 12.15a4.725 4.725 0 1 0 9.45 0a4.725 4.725 0 1 0 -9.45 0Z');
+}
+[data-theme="base"] .todo-item.done .check { background: var(--cat-box, var(--cat)); }
+[data-theme="base"] .check svg { width: 10px; height: 10px; }
+[data-theme="base"] .add-row .check { background: color-mix(in srgb, var(--cat) 30%, var(--clover-empty)); }
+[data-theme="base"] .todo-item.picked .pick-box { background: var(--primary); }
+/* 하단바: 글씨 없이 아이콘만, 지금 탭만 진하게 */
+[data-theme="base"] .tab-label { display: none; }
+[data-theme="base"] .tab { padding-top: 8px; padding-bottom: 8px; }
+[data-theme="base"] .tab[aria-current="page"] { color: var(--text); background: transparent; }
+[data-theme="base"] .tab:not([aria-current="page"]) { color: #b8c2cf; }
+[data-theme="base"] .tabbar { border-top-color: transparent; }
+/* 시리얼: 할 일 위 후르츠링 3개 빼기 */
+[data-theme="cereal"] .day-label::after { content: none; }
+
+/* 날짜 제목을 숨긴 테마: 버튼 줄과 진행 바가 붙지 않게 */
+[data-theme="base"] .day-top,
+[data-theme="cereal"] .day-top { margin-bottom: 12px; }
