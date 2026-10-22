@@ -11,6 +11,91 @@ import {
 } from './cloud.js';
 import { PUSH } from './push-config.js';
 
+// ===== 부드러운 창(시트) =====
+// 폰: 아래에서 스르륵 올라오고, 손잡이를 아래로 쓸거나 바깥을 누르면 스르륵 내려가요
+// 컴퓨터: 가운데에 부드럽게 떠오르고 사라져요
+// (앱 곳곳의 dialog.close()가 모두 내려가는 애니메이션을 거치도록, close를 한 번 감싸 둬요)
+const SHEET_CLOSE_MS = 220;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const nativeClose = HTMLDialogElement.prototype.close;
+const nativeShowModal = HTMLDialogElement.prototype.showModal;
+
+HTMLDialogElement.prototype.close = function close(...args) {
+  if (!this.open || !this.classList.contains('sheet') || reduceMotion.matches) {
+    nativeClose.apply(this, args);
+    return;
+  }
+  if (this._closeTimer) return; // 이미 내려가는 중
+  this.classList.add('closing');
+  this._closeTimer = setTimeout(() => {
+    this._closeTimer = null;
+    this.classList.remove('closing');
+    this.style.removeProperty('transform');
+    nativeClose.apply(this, args);
+  }, SHEET_CLOSE_MS);
+};
+
+HTMLDialogElement.prototype.showModal = function showModal(...args) {
+  // 내려가는 도중에 다시 열면, 내려가기를 취소하고 그대로 둬요
+  if (this._closeTimer) {
+    clearTimeout(this._closeTimer);
+    this._closeTimer = null;
+    this.classList.remove('closing');
+    this.style.removeProperty('transform');
+    return;
+  }
+  this.style.removeProperty('transform');
+  nativeShowModal.apply(this, args);
+};
+
+// 모든 시트에 손잡이를 달고, 손잡이·제목 줄을 잡고 아래로 쓸면 닫혀요
+function setupSheet(sheet) {
+  const grabber = Object.assign(document.createElement('div'), { className: 'grabber' });
+  grabber.setAttribute('aria-hidden', 'true');
+  sheet.prepend(grabber);
+  // Esc 키로 닫을 때도 애니메이션
+  sheet.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    sheet.close();
+  });
+
+  sheet.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary || !matchMedia('(max-width: 600px)').matches) return;
+    const zone = e.target.closest('.grabber, .sheet-head');
+    if (!zone || e.target.closest('button, input, select, textarea')) return;
+    const startY = e.clientY;
+    const startTime = performance.now();
+    let dy = 0;
+    sheet.style.transition = 'none';
+    const move = (ev) => {
+      dy = Math.max(0, ev.clientY - startY);
+      sheet.style.transform = `translateY(${dy}px)`;
+    };
+    const up = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointercancel', up);
+      sheet.style.transition = '';
+      const fast = dy / Math.max(1, performance.now() - startTime) > 0.6;
+      if (dy > 90 || (fast && dy > 30)) {
+        sheet.close();
+      } else {
+        sheet.style.transform = '';
+      }
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', up);
+  });
+}
+
+document.querySelectorAll('dialog.sheet').forEach(setupSheet);
+
+// 창 열기 (이미 열려 있으면 그대로, 내려가는 중이면 다시 올려요)
+function openSheet(dialog) {
+  if (!dialog.open || dialog._closeTimer) dialog.showModal();
+}
+
 // ===== 예전 저장 위치 =====
 // 1~3단계에서는 이 브라우저 안에만 저장했어요.
 // 처음 로그인할 때 여기 있던 할 일을 인터넷 저장소로 옮겨요. (원본은 지우지 않아요)
@@ -374,10 +459,14 @@ function addTodo(title, categoryId) {
   render();
 }
 
+let justChecked = null; // 방금 체크한 할 일 (그것만 '톡' 효과)
+
 function toggleTodo(id) {
   if (viewing) return; // 친구 할 일은 보기만 해요
   const todo = realize(id);
   if (!todo) return;
+  justChecked = todo.done ? null : todo.id;
+  setTimeout(() => { justChecked = null; }, 400);
   todo.done = !todo.done;
   todo.doneAt = todo.done ? Date.now() : null;
   save(remote.updateTodo(id, { done: todo.done, doneAt: todo.doneAt }));
@@ -872,7 +961,7 @@ function renderItem(todo) {
   if (selecting) return renderSelectableItem(todo);
 
   const li = document.createElement('li');
-  li.className = 'todo-item' + (todo.done ? ' done' : '');
+  li.className = 'todo-item' + (todo.done ? ' done' : '') + (todo.id === justChecked ? ' pop' : '');
 
   const check = document.createElement('button');
   check.className = 'check';
@@ -1137,7 +1226,7 @@ function openTodoSheet(id) {
   sheetIds = [todo.id];
   sheetMode = 'menu';
   renderTodoSheet();
-  if (!$todoSheet.open) $todoSheet.showModal();
+  openSheet($todoSheet);
 }
 
 // 날짜 고르기부터 바로 열기 (여러 개 이동·복사)
@@ -1145,7 +1234,7 @@ function openDateSheet(ids, mode) {
   sheetIds = ids;
   sheetMode = mode;
   renderTodoSheet();
-  if (!$todoSheet.open) $todoSheet.showModal();
+  openSheet($todoSheet);
 }
 
 function closeTodoSheet() {
@@ -1459,7 +1548,7 @@ function el(tag, props = {}, children = []) {
 function openRoutineList() {
   routineView = 'list';
   renderRoutineDialog();
-  if (!$routineDialog.open) $routineDialog.showModal();
+  openSheet($routineDialog);
 }
 
 function openRoutineForm(routine, fromTodo = null) {
@@ -1483,7 +1572,7 @@ function openRoutineForm(routine, fromTodo = null) {
   routinePicking = null;
   routineView = 'form';
   renderRoutineDialog();
-  if (!$routineDialog.open) $routineDialog.showModal();
+  openSheet($routineDialog);
 }
 
 function renderRoutineDialog() {
@@ -1833,7 +1922,7 @@ function openBlockForm(block) {
   }
   blockLinking = false;
   renderBlockForm();
-  if (!$blockDialog.open) $blockDialog.showModal();
+  openSheet($blockDialog);
 }
 
 // 시·분 고르기 (5분 단위). 끝 시간은 24:00까지
@@ -2014,7 +2103,7 @@ function deleteBlock(id) {
   });
 }
 
-// ----- 플래너 틀 -----
+// ----- 플래너 템플릿 -----
 function renderTemplates() {
   const key = toDateKey(plannerDate);
   const rows = plannerTemplates
@@ -2033,19 +2122,19 @@ function renderTemplates() {
       ]);
       apply.addEventListener('click', () => applyTemplate(t));
       const remove = el('button', { type: 'button', className: 'icon-button', textContent: '×' });
-      remove.setAttribute('aria-label', `${t.name} 틀 지우기`);
+      remove.setAttribute('aria-label', `${t.name} 템플릿 지우기`);
       remove.addEventListener('click', () => deleteTemplate(t.id));
       return el('li', { className: 'template-row' }, [apply, remove]);
     });
 
-  const name = el('input', { type: 'text', className: 'edit-input', maxLength: 30, placeholder: '틀 이름 (예: 시험 기간 평일)' });
-  name.setAttribute('aria-label', '틀 이름');
+  const name = el('input', { type: 'text', className: 'edit-input', maxLength: 30, placeholder: '템플릿 이름 (예: 시험 기간 평일)' });
+  name.setAttribute('aria-label', '템플릿 이름');
   const error = el('p', { className: 'form-error', role: 'alert' });
-  const saveButton = el('button', { type: 'button', className: 'primary-button', textContent: '지금 플래너를 틀로 저장' });
+  const saveButton = el('button', { type: 'button', className: 'primary-button', textContent: '지금 플래너를 템플릿으로 저장' });
   saveButton.addEventListener('click', () => {
     const list = blocksOf(key);
     if (!list.length) { error.textContent = '이 날 플래너가 비어 있어요.'; return; }
-    if (!name.value.trim()) { error.textContent = '틀 이름을 적어 주세요.'; return; }
+    if (!name.value.trim()) { error.textContent = '템플릿 이름을 적어 주세요.'; return; }
     const template = {
       id: newId(),
       name: name.value.trim(),
@@ -2058,9 +2147,9 @@ function renderTemplates() {
   });
 
   $templateBody.replaceChildren(
-    el('p', { className: 'sheet-hint', textContent: `틀을 누르면 ${formatTitle(plannerDate)} 플래너가 그 틀로 바뀌어요.` }),
+    el('p', { className: 'sheet-hint', textContent: `템플릿을 누르면 ${formatTitle(plannerDate)} 플래너가 그 템플릿으로 바뀌어요.` }),
     el('ul', { className: 'archive-list' }, rows),
-    rows.length ? '' : el('p', { className: 'archive-empty', textContent: '저장한 틀이 없어요.' }),
+    rows.length ? '' : el('p', { className: 'archive-empty', textContent: '저장한 템플릿이 없어요.' }),
     el('div', { className: 'routine-form template-save' }, [name, error, saveButton]),
   );
 }
@@ -2082,7 +2171,7 @@ function applyTemplate(template) {
   blocks = blocks.filter((b) => b.date !== key).concat(created);
   $templateDialog.close();
   renderPlanner();
-  showToast(`'${template.name}' 틀을 불러왔어요`, {
+  showToast(`'${template.name}' 템플릿을 불러왔어요`, {
     label: '되돌리기',
     run() {
       const swap = new Set([...created, ...previous].map((b) => b.id));
@@ -2099,7 +2188,7 @@ function deleteTemplate(id) {
   plannerTemplates = plannerTemplates.filter((t) => t.id !== id);
   save(remote.deleteTemplate(id));
   renderTemplates();
-  showToast(`'${template.name}' 틀을 지웠어요`, {
+  showToast(`'${template.name}' 템플릿을 지웠어요`, {
     label: '되돌리기',
     run() {
       plannerTemplates.push(template);
@@ -3353,7 +3442,7 @@ function openReactions(todo) {
   reactTarget = { key: targetKeyOf(todo), title: todo.title, categoryId: todo.categoryId, date: todo.date };
   pickerOpen = false;
   renderReactions();
-  if (!$reactDialog.open) $reactDialog.showModal();
+  openSheet($reactDialog);
 }
 
 function addReaction(fields) {

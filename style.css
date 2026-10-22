@@ -2212,6 +2212,65 @@ body { font-size: 15.5px; }
   .todo-title, button.todo-title, .add-input { font-size: 16.5px; }
 }
 
+/* ===== 부드러운 창(시트) ===== */
+.grabber { display: none; }
+
+.sheet[open] { animation: sheet-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1); }
+.sheet[open]::backdrop { animation: backdrop-in 0.26s ease; }
+.sheet.closing { animation: sheet-out 0.22s ease forwards; }
+.sheet.closing::backdrop { animation: backdrop-out 0.22s ease forwards; }
+
+@keyframes sheet-in { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+@keyframes sheet-out { to { opacity: 0; transform: translateY(14px) scale(0.98); } }
+@keyframes backdrop-in { from { opacity: 0; } }
+@keyframes backdrop-out { to { opacity: 0; } }
+
+/* 폰: 모든 창이 아래에서 올라와요 */
+@media (max-width: 600px) {
+  .sheet,
+  .action-sheet {
+    width: 100%;
+    max-width: 100%;
+    max-height: 88dvh;
+    margin: auto 0 0;
+    padding-top: 10px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    border-radius: 22px 22px 0 0;
+    overflow-y: auto;
+    transition: transform 0.2s ease;
+  }
+
+  .grabber {
+    display: block;
+    width: 40px;
+    height: 5px;
+    margin: 0 auto 10px;
+    background: #d3dbe6;
+    border-radius: 999px;
+    touch-action: none;
+  }
+
+  .sheet-head { touch-action: none; }
+
+  .sheet[open] { animation: sheet-up 0.32s cubic-bezier(0.2, 0.9, 0.3, 1); }
+  .sheet.closing { animation: sheet-down 0.22s ease-in forwards; }
+
+  @keyframes sheet-up { from { transform: translateY(100%); } }
+  @keyframes sheet-down { to { transform: translateY(100%); } }
+}
+
+/* 체크할 때 살짝 톡 */
+.todo-item.done.pop .check { animation: check-pop 0.28s ease; }
+@keyframes check-pop {
+  0% { transform: scale(0.8); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open], .sheet.closing, .sheet[open]::backdrop, .todo-item.done.pop .check { animation: none; }
+}
+
 /* 친구 창 안의 카드는 바탕 없이 */
 #friends-dialog .friend-card { padding: 0; margin: 0; box-shadow: none; }
 
