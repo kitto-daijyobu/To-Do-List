@@ -2161,6 +2161,57 @@ body { font-size: 15.5px; }
 .item-add .primary-button { flex-shrink: 0; white-space: nowrap; }
 .item-add .edit-input { min-width: 0; }
 
+/* ===== 할 일 목록 크기·간격: 투두메이트 비율에 맞춤 ===== */
+.sections { gap: 24px; }
+
+.cat-head {
+  min-height: 40px;
+  padding: 6px 7px 6px 14px;
+  gap: 8px;
+  font-size: 15.5px;
+  font-weight: 700;
+}
+
+.cat-dot { width: 9px; height: 9px; }
+
+.cat-plus {
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(31, 42, 55, 0.08);
+}
+
+.cat-plus svg { width: 15px; height: 15px; }
+
+.todo-list { margin-top: 8px; }
+
+.todo-item {
+  min-height: 40px;
+  gap: 12px;
+  padding: 3px 4px 3px 2px;
+}
+
+.todo-item .check,
+.add-row .check { width: 26px; height: 26px; }
+.check svg { width: 15px; height: 15px; }
+
+.todo-title, button.todo-title { font-size: 17px; line-height: 1.4; }
+
+.add-row { min-height: 40px; padding: 3px 4px 3px 2px; margin-top: 2px; }
+.add-input { font-size: 17px; }
+
+.react-line { margin-top: 0; }
+
+/* 친구 칩 */
+.friend-chip { min-height: 42px; padding: 4px 16px 4px 4px; font-size: 15.5px; gap: 10px; }
+.profile-photo.chip-photo { width: 34px; height: 34px; font-size: 14px; }
+.friend-chip.add { padding: 10px 16px; }
+
+@media (max-width: 480px) {
+  .todo-title, button.todo-title, .add-input { font-size: 16.5px; }
+}
+
 /* 친구 창 안의 카드는 바탕 없이 */
 #friends-dialog .friend-card { padding: 0; margin: 0; box-shadow: none; }
 
