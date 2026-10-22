@@ -1001,7 +1001,9 @@ function renderProgress() {
   const doneCount = dayTodos.filter((t) => t.done).length;
   const total = dayTodos.length;
   $progressFill.style.width = total ? `${(doneCount / total) * 100}%` : '0';
-  $progressText.textContent = total ? `${doneCount} / ${total} 완료` : '할 일 없음';
+  // '완료' 글자는 시리얼·우주 테마에서 숨겨요 ("3 / 5")
+  if (total) $progressText.replaceChildren(`${doneCount} / ${total}`, el('span', { className: 'progress-done', textContent: ' 완료' }));
+  else $progressText.textContent = '할 일 없음';
   $empty.hidden = total > 0;
   $empty.textContent = viewing ? '이 날 공개된 할 일이 없어요.' : '카테고리 이름을 눌러 할 일을 추가해 보세요.';
 
@@ -3952,10 +3954,15 @@ $themeDialog.addEventListener('click', (e) => {
 });
 document.getElementById('theme-name').textContent = findTheme(themeChoice).name;
 
-// 우주 테마 글꼴은 우주를 입을 때만 받아요
+// 테마 전용 글꼴은 그 테마를 입을 때만 받아요
+const THEME_FONTS = {
+  space: 'family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono',
+  cereal: 'family=Jua&family=Lilita+One',
+};
 function loadThemeFonts() {
-  if (theme.id !== 'space' || document.getElementById('space-fonts')) return;
-  const link = el('link', { id: 'space-fonts', rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono&display=swap' });
+  const families = THEME_FONTS[theme.id];
+  if (!families || document.getElementById(`${theme.id}-fonts`)) return;
+  const link = el('link', { id: `${theme.id}-fonts`, rel: 'stylesheet', href: `https://fonts.googleapis.com/css2?${families}&display=swap` });
   document.head.append(link);
 }
 loadThemeFonts();

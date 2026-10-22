@@ -2630,12 +2630,12 @@ body {
 }
 @media (max-width: 480px) { [data-theme="iphone"] .home-top-bar { margin-top: -20px; } }
 /* 넓은 화면: 위 막대도 아래 탭바처럼 화면 끝까지 꽉 차게 (버튼 자리는 그대로) */
-@media (min-width: 600px) {
+@media all {
   [data-theme="iphone"] .home-top-bar {
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    padding-left: calc(50vw - 50% + 10px);
-    padding-right: calc(50vw - 50% + 10px);
+    margin-left: calc(50% - 50vw - 20px);
+    margin-right: calc(50% - 50vw - 20px);
+    padding-left: calc(50vw - 50% + 30px);
+    padding-right: calc(50vw - 50% + 30px);
   }
   html[data-theme="iphone"] { overflow-x: clip; }
 }
@@ -2849,3 +2849,220 @@ body {
 .space-moon .dipper { position: absolute; top: 2px; left: -67px; width: 62px; height: 34px; overflow: visible; opacity: 0.45; transform: rotate(18deg) scale(0.85); }
 .space-moon .dipper polyline { fill: none; stroke: rgba(201, 214, 234, 0.35); stroke-width: 1; }
 .space-moon .dipper circle { fill: #e6ecf5; }
+/* =====================================================================
+   🥣 시리얼 박스
+   ===================================================================== */
+.cereal-logo, .cereal-badge, .cereal-deco { display: none; }
+.progress-done { display: inline; }
+[data-theme="cereal"] .progress-done,
+[data-theme="space"] .progress-done { display: none; }
+
+:root[data-theme="cereal"] {
+  --bg: #fbefd9;
+  --surface: #fffaf0;
+  --text: #1b2340;
+  --text-2: #1b2340;
+  --text-muted: #5c6178;
+  --text-faint: #a99f88;
+  --border: #1b2340;
+  --border-strong: #1b2340;
+  --primary: #2b5fb4;
+  --on-primary: #fbefd9;
+  --primary-soft: #f7b928;
+  --primary-soft-hover: #f2ab0c;
+  --primary-hover: #234f97;
+  --danger: #e2412b;
+  --danger-soft: #fbd9cf;
+  --sunday: #e2412b;
+  --saturday: #2b5fb4;
+  --hover: rgba(27, 35, 64, 0.05);
+  --hover-strong: rgba(27, 35, 64, 0.09);
+  --overlay: rgba(27, 35, 64, 0.45);
+  --toast-bg: #1b2340;
+  --box-empty: #1b2340;
+  --box-radius: 50%;
+  --sel-bg: #1b2340;
+  --sel-fg: #fbefd9;
+  --today-pill-bg: #fbefd9;
+  --today-pill-fg: #1b2340;
+  --prog-track: #ffffff;
+  --prog-fill: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.28) 0 6px, transparent 6px 12px), #e2412b;
+  --btn-bg: #f7b928;
+  --btn-border: #1b2340;
+  --btn-color: #1b2340;
+  --tab-bg: #1b2340;
+  --tab-border: #1b2340;
+  --tab-active: #f7b928;
+  --tab-active-bg: transparent;
+  --tab-inactive: #8d93ad;
+  --card-radius: 20px;
+  --radius: 20px;
+  --shadow: 6px 6px 0 #1b2340;
+  --mark-radius: 50%;
+  letter-spacing: 0.035em;
+}
+html[data-theme="cereal"] { overflow-x: clip; }
+[data-theme="cereal"] .home-name,
+[data-theme="cereal"] .day-title,
+[data-theme="cereal"] .cal-title,
+[data-theme="cereal"] .cat-head,
+[data-theme="cereal"] .tab-label,
+[data-theme="cereal"] .view-title,
+[data-theme="cereal"] .sheet h2 { font-family: 'Jua', var(--font); font-weight: 400; }
+[data-theme="cereal"] .home-name { font-size: 26px; }
+[data-theme="cereal"] .day-title { font-size: 28px; }
+[data-theme="cereal"] .day-label { color: #e2412b; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+[data-theme="cereal"] .day-label::after { content: ""; width: 40px; height: 32px; background: url(icons/cereal-bits.png) center / contain no-repeat; }
+
+/* 위: 파란 띠 + TODOLIST 로고 + 빨강·노랑 줄무늬 */
+[data-theme="cereal"] .home-top-bar {
+  position: relative;
+  min-height: 58px;
+  margin: -40px -16px 22px;
+  padding: 8px 16px;
+  align-items: center;
+  gap: 8px;
+  background: #2b5fb4;
+  box-shadow: 0 6px 0 #e2412b, 0 12px 0 #f7b928;
+}
+@media (max-width: 480px) { [data-theme="cereal"] .home-top-bar { margin-top: -20px; } }
+@media all {
+  [data-theme="cereal"] .home-top-bar {
+    margin-left: calc(50% - 50vw - 20px);
+    margin-right: calc(50% - 50vw - 20px);
+    padding-left: calc(50vw - 50% + 36px);
+    padding-right: calc(50vw - 50% + 36px);
+  }
+}
+@media (min-width: 900px) { [data-theme="cereal"] .home-top-bar { margin-top: -56px; } }
+[data-theme="cereal"] .cereal-logo {
+  display: flex;
+  margin-right: auto;
+  font-family: 'Lilita One', 'Jua', sans-serif;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+[data-theme="cereal"] .cereal-logo b {
+  font-weight: 400;
+  color: #fbefd9;
+  text-shadow: 2px 2px 0 #e2412b, 4px 4px 0 #1b2340;
+  transform: rotate(-5deg);
+}
+[data-theme="cereal"] .cereal-logo b:nth-child(even) { color: #f7b928; transform: rotate(6deg) translateY(2px); }
+[data-theme="cereal"] .cereal-logo b:nth-child(3n) { transform: rotate(-7deg) translateY(-1px); }
+
+/* 두꺼운 남색 테두리 + 비껴 찍은 그림자 */
+[data-theme="cereal"] .menu-button {
+  border: 2.5px solid #1b2340;
+  box-shadow: 3px 3px 0 #1b2340;
+}
+[data-theme="cereal"] .menu-button[aria-expanded="true"],
+[data-theme="cereal"] .menu-button:hover { background: #f2ab0c; }
+[data-theme="cereal"] .calendar,
+[data-theme="cereal"] .settings-list,
+[data-theme="cereal"] .profile-card,
+[data-theme="cereal"] .study-card,
+[data-theme="cereal"] .blk:not(.rest) { border: 3px solid #1b2340; box-shadow: 6px 6px 0 #1b2340; }
+[data-theme="cereal"] .profile-photo.home-photo { border: 3px solid #1b2340; box-shadow: 4px 4px 0 #1b2340; background: #fffaf0; }
+[data-theme="cereal"] .sheet { border: 3px solid #1b2340; }
+
+/* 달력: 빨간 머리줄 */
+[data-theme="cereal"] .calendar { overflow: hidden; }
+[data-theme="cereal"] .cal-header {
+  margin: -18px -16px 12px;
+  padding: 10px 12px 10px 14px;
+  background: #e2412b;
+  border-bottom: 3px solid #1b2340;
+}
+[data-theme="cereal"] .cal-title { font-size: 21px; color: #fbefd9; text-shadow: 2px 2px 0 #1b2340; }
+[data-theme="cereal"] .cal-nav { color: #fbefd9; }
+[data-theme="cereal"] .cal-today { border: 2px solid #1b2340; }
+[data-theme="cereal"] .cal-num { color: #1b2340; }
+
+/* 달력 마크 = 시리얼 링(O) */
+[data-theme="cereal"] .mark {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 5px solid #f1dfb8;
+  color: #1b2340;
+  font-size: 11px;
+}
+[data-theme="cereal"] .mark.part { background: #fffaf0; border-color: #f7b928; color: #1b2340; }
+[data-theme="cereal"] .mark.full { background: #e2412b; border-color: #1b2340; color: #fbefd9; }
+[data-theme="cereal"] .mark svg { width: 11px; height: 11px; }
+
+/* 진행 바: 18px 빨강 사선 줄무늬 */
+[data-theme="cereal"] .progress-bar { height: 18px; border: 2.5px solid #1b2340; border-radius: 10px; }
+[data-theme="cereal"] .progress-fill { border-radius: 0; }
+[data-theme="cereal"] .progress-text { font-weight: 700; color: #1b2340; }
+
+/* 카테고리 이름표: 원색 바탕 + 테두리 + 그림자 */
+[data-theme="cereal"] .cat-head {
+  border: 2.5px solid #1b2340;
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 #1b2340;
+}
+[data-theme="cereal"] .cat-dot { background: var(--cat-ink); }
+[data-theme="cereal"] .cat-plus { background: #fbefd9; color: #1b2340; }
+[data-theme="cereal"] .check { border-width: 3px; }
+[data-theme="cereal"] .todo-item.done .check { border-color: #1b2340; }
+[data-theme="cereal"] .todo-item.done .todo-title { color: #a99f88; }
+
+/* 탭바: 남색 */
+[data-theme="cereal"] .tabbar { backdrop-filter: none; -webkit-backdrop-filter: none; border-top: none; }
+
+/* 프로필 오른쪽: NEVER GIVE UP! 노란 별 배지 */
+[data-theme="cereal"] .cereal-badge {
+  display: block;
+  flex-shrink: 0;
+  margin-left: auto;
+  filter: drop-shadow(4px 4px 0 #1b2340);
+  transform: rotate(-10deg);
+}
+[data-theme="cereal"] .cereal-badge span {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 14px;
+  line-height: 1.05;
+  text-align: center;
+  color: #e2412b;
+  background: #f7b928;
+  clip-path: polygon(50% 0%, 55.2% 10.3%, 62.9% 1.7%, 65.3% 13%, 75% 6.7%, 74.4% 18.3%, 85.4% 14.6%, 81.7% 25.6%, 93.3% 25%, 87% 34.7%, 98.3% 37.1%, 89.7% 44.8%, 100% 50%, 89.7% 55.2%, 98.3% 62.9%, 87% 65.3%, 93.3% 75%, 81.7% 74.4%, 85.4% 85.4%, 74.4% 81.7%, 75% 93.3%, 65.3% 87%, 62.9% 98.3%, 55.2% 89.7%, 50% 100%, 44.8% 89.7%, 37.1% 98.3%, 34.7% 87%, 25% 93.3%, 25.6% 81.7%, 14.6% 85.4%, 18.3% 74.4%, 6.7% 75%, 13% 65.3%, 1.7% 62.9%, 10.3% 55.2%, 0% 50%, 10.3% 44.8%, 1.7% 37.1%, 13% 34.7%, 6.7% 25%, 18.3% 25.6%, 14.6% 14.6%, 25.6% 18.3%, 25% 6.7%, 34.7% 13%, 37.1% 1.7%, 44.8% 10.3%);
+}
+
+/* 오른쪽 아래: 작은 무지개 + 마스코트 원형 스티커 (목록 맨 끝, 글씨를 가리지 않게 뒤쪽에) */
+[data-theme="cereal"] #view-home { position: relative; }
+[data-theme="cereal"] .cereal-deco {
+  display: block;
+  position: relative;
+  height: 150px;
+  pointer-events: none;
+}
+@media (min-width: 900px) { [data-theme="cereal"] .cereal-deco { grid-column: 2; } }
+[data-theme="cereal"] .cereal-rainbow {
+  position: absolute;
+  right: -100px;
+  bottom: -60px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fbefd9 0 30%, #2b5fb4 30% 47%, #f7b928 47% 64%, #e2412b 64% 100%);
+}
+[data-theme="cereal"] .cereal-mascot {
+  position: absolute;
+  right: 40px;
+  bottom: 30px;
+  width: 112px;
+  height: 112px;
+  object-fit: contain;
+  padding: 10px;
+  background: #ffffff;
+  border: 3px solid #1b2340;
+  border-radius: 50%;
+  box-shadow: 4px 4px 0 #1b2340;
+}

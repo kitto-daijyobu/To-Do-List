@@ -21,6 +21,19 @@ const MATCHA = [
   { name: '숲', dot: '#2f5d3a', bg: '#cfe0d1', fg: '#1d3a24', on: '#ffffff' },
 ];
 
+// 시리얼 박스: 쨍한 원색 (이름표는 진한 색 바탕 + 크림 글자, 노랑·하늘은 남색 글자)
+const CEREAL = [
+  { name: '파랑', dot: '#2b5fb4', bg: '#2b5fb4', fg: '#fbefd9', box: '#2b5fb4', on: '#fbefd9' },
+  { name: '빨강', dot: '#e2412b', bg: '#e2412b', fg: '#fbefd9', box: '#e2412b', on: '#fbefd9' },
+  { name: '노랑', dot: '#f7b928', bg: '#f7b928', fg: '#1b2340', box: '#f7b928', on: '#1b2340' },
+  { name: '초록', dot: '#3a9a5b', bg: '#3a9a5b', fg: '#fbefd9', box: '#3a9a5b', on: '#fbefd9' },
+  { name: '주황', dot: '#f07a22', bg: '#f07a22', fg: '#fbefd9', box: '#f07a22', on: '#fbefd9' },
+  { name: '보라', dot: '#7b4bb3', bg: '#7b4bb3', fg: '#fbefd9', box: '#7b4bb3', on: '#fbefd9' },
+  { name: '하늘', dot: '#45b4e6', bg: '#45b4e6', fg: '#1b2340', box: '#45b4e6', on: '#1b2340' },
+  { name: '분홍', dot: '#e85a8c', bg: '#e85a8c', fg: '#fbefd9', box: '#e85a8c', on: '#fbefd9' },
+  { name: '남색', dot: '#1b2340', bg: '#1b2340', fg: '#fbefd9', box: '#1b2340', on: '#fbefd9' },
+];
+
 // 우주: 별빛 파랑 · 보라 · 청록 · 금빛 (어두운 바탕 위 은은한 색)
 const SPACE = [
   { name: '별빛', dot: '#7aa7e8', bg: 'rgba(122,167,232,.14)', fg: '#a9c6f0', on: '#0d1420' },
@@ -47,7 +60,7 @@ export const THEMES = [
   {
     id: 'cereal', name: '시리얼 박스', sub: '원색 · 두꺼운 테두리',
     swatches: ['#fbefd9', '#e2412b', '#f7b928', '#2b5fb4', '#1b2340'],
-    statusColor: '#2b5fb4', mark: 'shape', ready: false,
+    statusColor: '#2b5fb4', mark: 'shape', palette: CEREAL, ready: true,
   },
   {
     id: 'iphone', name: '2007 아이폰', sub: '유광 버튼 · 은회색',
