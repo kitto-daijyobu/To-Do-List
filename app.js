@@ -3485,6 +3485,18 @@ async function renderPushState() {
   pushOn = Boolean(sub) && Notification.permission === 'granted';
   $pushState.textContent = pushOn ? '켜짐' : '꺼짐';
   $pushState.classList.toggle('on', pushOn);
+  document.getElementById('push-test-row').hidden = !pushOn;
+}
+
+// 나에게 시험 알림 (앱을 닫거나 홈 화면으로 나가 있으면 잠금화면·알림센터에서 보여요)
+function sendTestPush() {
+  remote.setPushJob(newId(), { to: currentUser.uid, at: Date.now(), title: '알림이 잘 와요 🔔', body: '나의 할 일 알림 시험이에요.', tag: 'test' })
+    .then(flushPush)
+    .then(() => showToast('시험 알림을 보냈어요. 몇 초 안에 도착해요'))
+    .catch((err) => {
+      console.error(err);
+      showToast('시험 알림을 보내지 못했어요. 보안 규칙을 확인해 주세요');
+    });
 }
 
 async function togglePush() {
@@ -3577,6 +3589,7 @@ function notifyReaction(ownerUid, reaction, todoTitle) {
 }
 
 document.getElementById('push-toggle').addEventListener('click', togglePush);
+document.getElementById('push-test').addEventListener('click', sendTestPush);
 
 document.getElementById('open-notices').addEventListener('click', openNotices);
 document.getElementById('notice-close').addEventListener('click', () => $noticeDialog.close());
