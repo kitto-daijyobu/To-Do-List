@@ -891,6 +891,28 @@ function renderSpaceMoon() {
     `<span class="moon-name">${name}</span>`;
 }
 
+// ===== 🍥 위시코어: 나루토마끼 달력 마크 =====
+// 32각 톱니 원 + (다 끝낸 날) 분홍 소용돌이
+const NARUTO_EDGE = Array.from({ length: 64 }, (_, i) => {
+  const a = (Math.PI * 2 * i) / 64;
+  const r = i % 2 ? 13.6 : 15;
+  return `${(20 + r * Math.cos(a)).toFixed(2)},${(20 + r * Math.sin(a)).toFixed(2)}`;
+}).join(' ');
+const NARUTO_SWIRL = (() => {
+  const pts = [];
+  for (let t = 0; t <= Math.PI * 5; t += 0.25) {
+    const r = 0.6 + (8.4 * t) / (Math.PI * 5);
+    pts.push(`${(20 + r * Math.cos(t)).toFixed(2)},${(20 + r * Math.sin(t)).toFixed(2)}`);
+  }
+  return pts.join(' ');
+})();
+
+function narutoSvg(total, done) {
+  const state = !total ? 'empty' : done === total ? 'full' : 'part';
+  const swirl = state === 'full' ? `<polyline points="${NARUTO_SWIRL}" class="naruto-swirl"/>` : '';
+  return `<svg viewBox="0 0 40 40" aria-hidden="true"><polygon points="${NARUTO_EDGE}" class="naruto-${state}"/>${swirl}</svg>`;
+}
+
 function renderCalendar() {
   renderSpaceMoon();
   const year = viewMonth.getFullYear();
@@ -935,6 +957,10 @@ function renderCalendar() {
       if (total && done === total) inner = checkSvg.replace('<svg', '<svg class="clover-check"');
       else if (total) inner = `<span class="clover-count">${total - done}</span>`;
       clover.innerHTML = cloverSvg(leafColors) + inner;
+    } else if (theme.mark === 'naruto') {
+      // 위시코어: 나루토마끼 (남은 개수, 다 끝내면 분홍 소용돌이)
+      clover.className = 'naruto-mark';
+      clover.innerHTML = narutoSvg(total, done) + (total && done < total ? `<span>${total - done}</span>` : '');
     } else if (theme.mark === 'moon') {
       // 우주: 끝낸 만큼 차오르는 달 (숫자 없음)
       clover.className = 'moon-mark' + (total && done === total ? ' full' : '');
@@ -3958,6 +3984,7 @@ document.getElementById('theme-name').textContent = findTheme(themeChoice).name;
 const THEME_FONTS = {
   space: 'family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono',
   cereal: 'family=Jua&family=Lilita+One',
+  wish: 'family=Gaegu:wght@400;700&family=Gowun+Dodum',
 };
 function loadThemeFonts() {
   const families = THEME_FONTS[theme.id];

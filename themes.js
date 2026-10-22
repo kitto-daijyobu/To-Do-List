@@ -34,6 +34,18 @@ const CEREAL = [
   { name: '남색', dot: '#1b2340', bg: '#1b2340', fg: '#fbefd9', box: '#1b2340', on: '#fbefd9' },
 ];
 
+// 위시코어: 파스텔 반창고 색 (bg = 반창고 바탕, fg = 글자)
+const WISH = [
+  { name: '하늘', dot: '#8ec1ec', bg: '#d4e6f7', fg: '#36618c', on: '#ffffff' },
+  { name: '분홍', dot: '#f6a9c3', bg: '#f9d9e3', fg: '#a24d70', on: '#ffffff' },
+  { name: '연두', dot: '#9cc98a', bg: '#d8edd2', fg: '#456f37', on: '#ffffff' },
+  { name: '살구', dot: '#f0a07a', bg: '#fbe3cf', fg: '#a35a32', on: '#ffffff' },
+  { name: '라벤더', dot: '#b79ce0', bg: '#e6dcf6', fg: '#6a54a0', on: '#ffffff' },
+  { name: '레몬', dot: '#f2cf6b', bg: '#fbf0c8', fg: '#8a6a12', on: '#ffffff' },
+  { name: '민트', dot: '#7cc8bf', bg: '#d6efec', fg: '#2f6f68', on: '#ffffff' },
+  { name: '딸기우유', dot: '#ef8f9f', bg: '#fbdde2', fg: '#a3404f', on: '#ffffff' },
+];
+
 // 우주: 별빛 파랑 · 보라 · 청록 · 금빛 (어두운 바탕 위 은은한 색)
 const SPACE = [
   { name: '별빛', dot: '#7aa7e8', bg: 'rgba(122,167,232,.14)', fg: '#a9c6f0', on: '#0d1420' },
@@ -75,7 +87,7 @@ export const THEMES = [
   {
     id: 'wish', name: '위시코어', sub: '파스텔 · 손글씨',
     swatches: ['#fde6ee', '#fdfbfb', '#8ec1ec', '#f6a9c3', '#9cc98a'],
-    statusColor: '#fde6ee', mark: 'shape', ready: false,
+    statusColor: '#fde6ee', mark: 'naruto', palette: WISH, ready: true,
   },
   {
     id: 'space', name: '우주', sub: '끝낸 만큼 차오르는 달',
