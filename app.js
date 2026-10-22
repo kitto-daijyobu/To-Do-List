@@ -963,7 +963,8 @@ function beginTodoDrag(li, y) {
   Object.assign(li.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px` });
   document.body.append(li);
 
-  todoDrag = { li, gap, offset: y - box.top, lastY: y };
+  todoDrag = { li, gap, offset: y - box.top, lastY: y, startTop: box.top };
+  li.style.transform = 'translateY(0) scale(1.02)';
   document.body.classList.add('is-dragging');
   document.addEventListener('pointermove', onTodoDragMove);
   document.addEventListener('pointerup', endTodoDrag);
@@ -1012,7 +1013,9 @@ function onTodoDragMove(e) {
   if (!todoDrag) return;
   e.preventDefault();
   todoDrag.lastY = e.clientY;
-  todoDrag.li.style.top = `${e.clientY - todoDrag.offset}px`;
+  // top 대신 transform으로 움직여야 휴대폰에서 부드러워요
+  const dy = e.clientY - todoDrag.offset - todoDrag.startTop;
+  todoDrag.li.style.transform = `translateY(${dy}px) scale(1.02)`;
   placeGap(e.clientY);
   // 화면 위·아래 끝으로 끌면 저절로 스크롤
   if (e.clientY < 70) window.scrollBy(0, -12);
@@ -1021,7 +1024,7 @@ function onTodoDragMove(e) {
 
 function endTodoDrag() {
   if (!todoDrag) return;
-  const { li, gap } = todoDrag;
+  const { li, gap, startTop } = todoDrag;
   todoDrag = null;
   document.removeEventListener('pointermove', onTodoDragMove);
   document.removeEventListener('pointerup', endTodoDrag);
@@ -1035,8 +1038,8 @@ function endTodoDrag() {
   // 빈자리로 쏙 들어가는 모습을 보여 준 뒤 저장해요
   dropping = true;
   const dest = gap.getBoundingClientRect();
-  li.style.transition = 'top 0.15s ease, left 0.15s ease';
-  Object.assign(li.style, { top: `${dest.top}px`, left: `${dest.left}px` });
+  li.style.transition = 'transform 0.15s ease';
+  li.style.transform = `translateY(${dest.top - startTop}px)`;
   setTimeout(() => {
     li.classList.remove('dragging');
     li.removeAttribute('style');
@@ -2125,7 +2128,8 @@ const $timerSkip = document.getElementById('timer-skip');
 const RING = 2 * Math.PI * 108;
 
 function defaultTimer() {
-  return { mode: 'pomo', preset: 0, phase: 'focus', running: false, startedAt: 0, elapsed: 0, cycles: 0, cyclesDate: '', categoryId: null };
+  // mode: 지금 재고 있는 것 / view: 보고 있는 화면 (화면을 바꿔도 재던 건 이어져요)
+  return { mode: 'pomo', view: 'pomo', preset: 0, phase: 'focus', running: false, startedAt: 0, elapsed: 0, cycles: 0, cyclesDate: '', categoryId: null };
 }
 
 function loadTimer() {
@@ -2295,22 +2299,38 @@ function tickTimer() {
   if (document.body.dataset.tab === 'timer' || timer.running) renderTimerFace();
 }
 
+// 오늘 총 공부 시간 (기록 + 지금 재고 있는 것). 뽀모도로 집중 시간도 들어가요
+function todayStudyMs(now = Date.now()) {
+  const todayKey = toDateKey(new Date(now));
+  const logged = studyLogs.filter((l) => l.date === todayKey).reduce((s, l) => s + l.seconds * 1000, 0);
+  const live = timer.running && counting() ? now - timer.startedAt : 0;
+  return logged + live;
+}
+
+// 화면(view)은 보기만 바꾸고, 실제로 재고 있는 것(mode)은 그대로 이어져요
 function renderTimerFace() {
   const elapsed = timerElapsed();
+  const view = timer.view || timer.mode;
   let progress;
-  if (timer.mode === 'pomo') {
+  if (view === 'pomo') {
+    const pomoActive = timer.mode === 'pomo';
     const len = phaseLength();
-    $timerTime.textContent = clock(len - elapsed);
-    $timerPhase.textContent = timer.phase === 'focus' ? '집중' : '휴식';
+    $timerTime.textContent = clock(pomoActive ? len - elapsed : POMO_PRESETS[timer.preset][0] * 60000);
+    $timerPhase.textContent = pomoActive && timer.phase === 'break' ? '휴식' : '집중';
     const today = toDateKey(new Date());
     const cycles = timer.cyclesDate === today ? timer.cycles : 0;
-    $timerSub.textContent = cycles ? `오늘 🍅 ${cycles}번` : '';
-    progress = Math.min(1, elapsed / len);
+    $timerSub.textContent = !pomoActive && timer.running
+      ? '공부 시간 재는 중 · 시작하면 이어서 재요'
+      : (cycles ? `오늘 🍅 ${cycles}번` : '');
+    progress = pomoActive ? Math.min(1, elapsed / len) : 0;
   } else {
-    $timerTime.textContent = clock(elapsed, true);
-    $timerPhase.textContent = timer.running ? '공부 중' : (elapsed ? '일시정지' : '준비');
+    const total = todayStudyMs();
+    $timerTime.textContent = clock(total, true);
+    if (!timer.running) $timerPhase.textContent = '오늘 공부 시간';
+    else if (timer.mode === 'pomo') $timerPhase.textContent = timer.phase === 'focus' ? '🍅 뽀모도로로 재는 중' : '🍅 휴식 중';
+    else $timerPhase.textContent = '공부 중';
     $timerSub.textContent = '';
-    progress = (elapsed % 3600000) / 3600000; // 한 바퀴 = 1시간
+    progress = (total % 3600000) / 3600000; // 한 바퀴 = 1시간
   }
   $ringBar.style.strokeDasharray = `${RING}`;
   $ringBar.style.strokeDashoffset = `${RING * (1 - progress)}`;
@@ -2318,19 +2338,23 @@ function renderTimerFace() {
 }
 
 function renderTimer() {
-  for (const b of document.querySelectorAll('.timer-modes .seg')) b.classList.toggle('on', b.dataset.mode === timer.mode);
+  const view = timer.view || timer.mode;
+  for (const b of document.querySelectorAll('.timer-modes .seg')) b.classList.toggle('on', b.dataset.mode === view);
 
   // 뽀모도로 시간 고르기
   const presets = document.getElementById('pomo-presets');
-  presets.hidden = timer.mode !== 'pomo';
+  presets.hidden = view !== 'pomo';
   presets.replaceChildren(...POMO_PRESETS.map(([focus, rest], i) => {
     const chip = el('button', { type: 'button', className: 'chip-button' + (timer.preset === i ? ' on' : ''), textContent: `${focus}분 / ${rest}분` });
     chip.addEventListener('click', () => {
       if (timer.preset === i) return;
-      pauseTimer();
+      // 공부 시간 측정이 돌고 있으면 그대로 두고, 뽀모도로만 새로
+      if (timer.mode === 'pomo') {
+        pauseTimer();
+        timer.phase = 'focus';
+        timer.elapsed = 0;
+      }
       timer.preset = i;
-      timer.phase = 'focus';
-      timer.elapsed = 0;
       saveTimer();
       renderTimer();
     });
@@ -2364,10 +2388,59 @@ function renderTimer() {
   none.addEventListener('click', () => pick(null));
   document.getElementById('timer-cats').replaceChildren(...chips, none);
 
-  $timerMain.textContent = timer.running ? '일시정지' : (timerElapsed() ? '계속' : '시작');
-  $timerSkip.hidden = timer.mode !== 'pomo';
-  $timerReset.textContent = timer.mode === 'watch' ? '끝내기' : '초기화';
+  // 버튼: 보고 있는 화면 기준
+  if (view === 'pomo') {
+    const pomoActive = timer.mode === 'pomo';
+    if (pomoActive && timer.running) $timerMain.textContent = '일시정지';
+    else if (pomoActive && timer.elapsed) $timerMain.textContent = '계속';
+    else $timerMain.textContent = !pomoActive && timer.running ? '뽀모도로로 잇기' : '시작';
+    $timerSkip.hidden = !pomoActive;
+    $timerReset.textContent = '초기화';
+    $timerReset.hidden = !pomoActive;
+  } else {
+    $timerMain.textContent = timer.running ? '일시정지' : '시작';
+    $timerSkip.hidden = true;
+    $timerReset.textContent = '그만하기';
+    $timerReset.hidden = !timer.running && !(timer.mode === 'watch' && timer.elapsed);
+  }
   renderTimerFace();
+}
+
+// 큰 버튼: 화면에 맞게 시작·일시정지. 다른 쪽이 돌고 있으면 끊기지 않게 이어서 재요
+function onTimerMain() {
+  const view = timer.view || timer.mode;
+  if (view === 'pomo') {
+    if (timer.mode === 'pomo') {
+      if (timer.running) pauseTimer();
+      else startTimer();
+      return;
+    }
+    // 공부 시간 측정 → 뽀모도로로 이어서
+    pauseTimer();
+    Object.assign(timer, { mode: 'pomo', phase: 'focus', elapsed: 0 });
+    startTimer();
+    return;
+  }
+  if (timer.running) {
+    pauseTimer();
+    return;
+  }
+  // 공부 시간 측정 시작 (멈춰 있던 뽀모도로가 있으면 접어요)
+  Object.assign(timer, { mode: 'watch', phase: 'focus', elapsed: 0 });
+  startTimer();
+}
+
+// 작은 왼쪽 버튼: 뽀모도로 화면은 초기화, 공부 시간 화면은 그만하기(지금까지 기록하고 멈춤)
+function onTimerReset() {
+  const view = timer.view || timer.mode;
+  if (view === 'pomo') {
+    if (timer.mode === 'pomo') resetTimer();
+    return;
+  }
+  pauseTimer();
+  Object.assign(timer, { mode: 'watch', phase: 'focus', elapsed: 0 });
+  saveTimer();
+  renderTimer();
 }
 
 // 오늘 공부 시간 · 카테고리별 · 최근 7일
@@ -2413,15 +2486,14 @@ function renderStudy() {
 
 for (const b of document.querySelectorAll('.timer-modes .seg')) {
   b.addEventListener('click', () => {
-    if (timer.mode === b.dataset.mode) return;
-    resetTimer();
-    timer.mode = b.dataset.mode;
+    // 화면만 바꿔요. 재고 있던 건 멈추지 않아요
+    timer.view = b.dataset.mode;
     saveTimer();
     renderTimer();
   });
 }
-$timerMain.addEventListener('click', () => (timer.running ? pauseTimer() : startTimer()));
-$timerReset.addEventListener('click', resetTimer);
+$timerMain.addEventListener('click', onTimerMain);
+$timerReset.addEventListener('click', onTimerReset);
 $timerSkip.addEventListener('click', skipPhase);
 
 let studyTick = 0;
