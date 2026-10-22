@@ -3457,3 +3457,29 @@ html[data-theme="wish"]::before {
 }
 /* 진행 표시 끄기 (개인정보 → 진행 표시 보기) */
 body.no-progress .progress { display: none; }
+
+/* =====================================================================
+   촘촘하게 (모든 테마 공통, 투두메이트 간격 기준)
+   ===================================================================== */
+/* 할 일 줄: 높이·간격 줄이기 */
+:root .sections { gap: 14px; }
+:root .todo-list { margin-top: 2px; }
+:root .todo-item { min-height: 34px; gap: 10px; padding: 1px 4px 1px 6px; }
+:root button.todo-title { padding: 3px 0; line-height: 1.35; }
+:root .add-row { min-height: 34px; gap: 10px; padding: 1px 4px 1px 6px; }
+:root .react-line { margin-bottom: 1px; }
+/* 체크 칸: 글씨 크기와 같게 */
+:root .check { width: 18px; height: 18px; border-width: 1.8px; }
+:root .check svg { width: 11px; height: 11px; }
+[data-theme="wish"] .check { width: 20px; height: 20px; }
+[data-theme="wish"] .todo-item.done .check::after { font-size: 11px; }
+[data-theme="space"] .todo-item.done .check::after { font-size: 10px; }
+[data-theme="cereal"] .check { border-width: 2.5px; }
+/* 설정 목록 · 일정 메뉴: 줄 간격 줄이기 */
+:root .settings-item { padding: 10px 14px; }
+:root .sheet-action { min-height: 0; padding-top: 7px; padding-bottom: 7px; }
+
+/* 위시코어 카테고리: 반창고 대신 파스텔 이름표 (흰 칸 없이, 글씨 왼쪽부터) */
+[data-theme="wish"] .cat-head { padding: 4px 8px 4px 14px; background: var(--cat-soft); }
+[data-theme="wish"] .cat-title { padding: 0; background: none; border-radius: 0; }
+[data-theme="wish"] .cat-head .cat-plus { position: static; transform: none; width: 20px; height: 20px; }:root .sheet-action-icon { width: 28px; height: 28px; }
