@@ -3535,5 +3535,19 @@ body.no-progress .progress { display: none; }
 [data-theme="cereal"] .day-label::after { content: none; }
 
 /* 날짜 제목을 숨긴 테마: 버튼 줄과 진행 바가 붙지 않게 */
-[data-theme="base"] .day-top,
-[data-theme="cereal"] .day-top { margin-bottom: 12px; }
+
+
+/* 날짜 머리: 날짜 제목과 ✓ ☰ 버튼을 한 줄에, 진행 표시는 그 아래.
+   ('오늘' 글씨 자리는 없앴고, 진행 표시를 끄면 날짜 바로 아래에 할 일이 와요) */
+.day-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  margin-bottom: 16px;
+}
+.day-top { display: contents; }
+.day-label { display: none; }
+.day-header .day-title { grid-column: 1; grid-row: 1; margin: 0; }
+.day-header .day-actions { grid-column: 2; grid-row: 1; }
+.day-header .progress { grid-column: 1 / -1; margin-top: 12px; }
