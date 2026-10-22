@@ -146,6 +146,24 @@ const DEFAULT_CATEGORIES = [
   { id: 'personal', name: '개인', color: '#F0A96B' },
 ];
 
+// 배경과 너무 비슷한(연한) 색인지: 이런 색은 카테고리 이름표 바탕을 조금 더 진하게 해요
+// (밝기 대비가 1.9보다 작으면. 지금 배경에서는 연파랑·민트·연두·살구·노랑)
+function luminance(hexColor) {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const v = parseInt(hexColor.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function blendsWithBackground(hexColor) {
+  const bg = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#f4f7fb';
+  if (!/^#[0-9a-f]{6}$/i.test(bg)) return false;
+  const a = luminance(hexColor);
+  const b = luminance(bg);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) < 1.9;
+}
+
 // 색 값이 '#12abef' 모양일 때만 화면에 써요 (엉뚱한 값이 들어가는 것 방지)
 function safeColor(color) {
   return /^#[0-9a-f]{6}$/i.test(color) ? color : UNCATEGORIZED_COLOR;
@@ -880,6 +898,7 @@ function renderSection(cat, items, canAdd) {
   const section = document.createElement('section');
   section.className = 'cat-section';
   section.style.setProperty('--cat', safeColor(cat.color));
+  if (blendsWithBackground(safeColor(cat.color))) section.classList.add('soft-color');
   if (cat.id) section.dataset.catId = cat.id; // 끌어서 옮길 때 어느 카테고리인지 알려고
 
   const head = document.createElement(canAdd ? 'button' : 'div');

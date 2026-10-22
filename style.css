@@ -2174,6 +2174,9 @@ body { font-size: 15.5px; }
 
 .cat-dot { width: 9px; height: 9px; }
 
+/* 배경과 비슷한 연한 색(연파랑·민트·연두·살구·노랑): 이름표 바탕만 조금 더 진하게 */
+.cat-section.soft-color { --cat-soft: color-mix(in srgb, var(--cat) 32%, #fff); }
+
 .cat-plus {
   width: 28px;
   height: 28px;
