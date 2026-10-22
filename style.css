@@ -3424,3 +3424,13 @@ html[data-theme="space"]::before {
 [data-theme="space"] .space-moon .dipper { left: -82px; }
 [data-theme="space"] .me-row { gap: 12px; }
 [data-theme="space"] .home-bio { font-size: 12.5px; }
+/* 글 쓰는 동안 하단바 숨기기 (폰·태블릿) */
+@media (pointer: coarse) { body.typing .tabbar { display: none; } }
+
+/* 폰에서 화면이 저절로 확대되지 않게: 두 번 탭 확대 끄기 + 입력칸 글씨 16px 이상 (아이폰은 16px보다 작으면 확대해요) */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+  textarea,
+  select { font-size: max(16px, 1em) !important; }
+}

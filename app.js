@@ -1492,6 +1492,8 @@ const SHEET_ICONS = {
   archive: '<rect x="4" y="5" width="12" height="3" rx="1"/><path d="M5 8v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8M8.5 11h3"/>',
   today: '<circle cx="10" cy="10" r="5.5"/><path d="M10 7.5V10l1.8 1.2"/>',
   routine: '<path d="M5 9a5 5 0 0 1 8.5-3.5L15 7M15 4v3h-3M15 11a5 5 0 0 1-8.5 3.5L5 13M5 16v-3h3"/>',
+  eye: '<path d="M3 10s2.6-4.5 7-4.5S17 10 17 10s-2.6 4.5-7 4.5S3 10 3 10z"/><circle cx="10" cy="10" r="2"/>',
+  eyeOff: '<path d="M3 10s2.6-4.5 7-4.5S17 10 17 10s-2.6 4.5-7 4.5S3 10 3 10z"/><path d="M4.5 15.5l11-11"/>',
 };
 
 function sheetIcon(name) {
@@ -1595,9 +1597,29 @@ function renderTodoSheet() {
           archiveTodo(todo);
           finishAction('보관함에 넣었어요');
         }, 'archive'),
+        hideButton(todo),
       ];
 
   $todoSheetBody.replaceChildren(tiles, ...items);
+}
+
+// 일정 메뉴의 "친구에게 숨기기 / 친구에게 보이기" (누를 때마다 바뀌어요)
+function hideButton(todo) {
+  if (categoryHidden(todo.categoryId)) {
+    const b = sheetButton('친구에게 숨겨짐', '카테고리 전체가 숨겨져 있어요', () => {}, 'eyeOff');
+    b.disabled = true;
+    return b;
+  }
+  const hidden = !!todo.hideFromFriends;
+  return sheetButton(hidden ? '친구에게 보이기' : '친구에게 숨기기', hidden ? '지금 숨겨져 있어요' : '', () => {
+    const fields = { hideFromFriends: !hidden };
+    Object.assign(todo, fields);
+    fields.shared = isShared(todo);
+    todo.shared = fields.shared;
+    save(remote.updateTodo(todo.id, fields));
+    render();
+    renderTodoSheet();
+  }, hidden ? 'eye' : 'eyeOff');
 }
 
 // 이름 고치기
@@ -1617,32 +1639,19 @@ function renderEditForm(todo) {
     type: 'submit', className: 'primary-button', textContent: '저장',
   }));
 
-  // 이 할 일만 친구에게 숨기기
-  const hide = el('input', { type: 'checkbox', checked: !!todo.hideFromFriends });
-  const catHidden = categoryHidden(todo.categoryId);
-  const hideRow = el('label', { className: 'check-row' }, [hide, '친구에게 숨기기']);
-  if (catHidden) {
-    hide.checked = true;
-    hide.disabled = true;
-    hideRow.append(el('span', { className: 'sheet-hint', textContent: ' (카테고리 전체가 숨겨져 있어요)' }));
-  }
-
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const fields = {};
     const value = input.value.trim();
-    if (value && value !== todo.title) fields.title = value;
-    if (!catHidden && hide.checked !== !!todo.hideFromFriends) fields.hideFromFriends = hide.checked;
-    Object.assign(todo, fields);
-    if (todo.shared !== isShared(todo)) fields.shared = isShared(todo);
-    todo.shared = isShared(todo);
-    if (Object.keys(fields).length) save(remote.updateTodo(todo.id, fields));
+    if (value && value !== todo.title) {
+      todo.title = value;
+      save(remote.updateTodo(todo.id, { title: value }));
+    }
     sheetMode = 'menu';
     render();
     renderTodoSheet();
   });
 
-  form.append(input, hideRow, buttons);
+  form.append(input, buttons);
   setTimeout(() => {
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
@@ -4090,6 +4099,18 @@ document.getElementById('open-profile').addEventListener('click', openProfileFor
 document.getElementById('profile-close').addEventListener('click', () => $profileDialog.close());
 $profileDialog.addEventListener('click', (e) => {
   if (e.target === $profileDialog) $profileDialog.close();
+});
+
+// 글을 쓰는 동안(키보드가 올라온 동안)에는 하단바를 숨겨요
+// (폰에서 하단바가 키보드 위로 떠올라 입력칸을 가리는 걸 막아요)
+const isTypingField = (t) => t?.matches?.('input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), textarea, [contenteditable="true"]');
+document.addEventListener('focusin', (e) => {
+  if (isTypingField(e.target)) document.body.classList.add('typing');
+});
+document.addEventListener('focusout', () => {
+  setTimeout(() => {
+    if (!isTypingField(document.activeElement)) document.body.classList.remove('typing');
+  }, 50);
 });
 
 // ===== 앱처럼 설치하기 =====
