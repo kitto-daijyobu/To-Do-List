@@ -879,11 +879,12 @@ function renderSpaceMoon() {
   const f = moonPhaseOf(selectedDate);
   const name = PHASE_NAMES[Math.round(f * 8) % 8];
   // 북두칠성 (국자 4개 + 손잡이 3개)
-  const stars = [[4, 16], [14, 12], [16, 22], [6, 25], [24, 9], [33, 7], [42, 10]];
+  // 두베 · 메라크 · 페크다 · 메그레즈(국자) → 알리오스 · 미자르 · 알카이드(손잡이)
+  const stars = [[4, 5], [6, 16], [17, 19], [19, 9], [29, 10], [37, 12], [46, 20]];
   const lines = [0, 1, 2, 3, 0].map((i) => stars[i].join(',')).join(' ');
-  const handle = [1, 4, 5, 6].map((i) => stars[i].join(',')).join(' ');
+  const handle = [3, 4, 5, 6].map((i) => stars[i].join(',')).join(' ');
   box.innerHTML =
-    `<svg class="dipper" viewBox="0 0 46 30"><g transform="rotate(18 23 15)">` +
+    `<svg class="dipper" viewBox="0 0 50 26"><g transform="rotate(-8 25 13)">` +
     `<polyline points="${lines}"/><polyline points="${handle}"/>` +
     stars.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.3"/>`).join('') +
     `</g></svg>` +
