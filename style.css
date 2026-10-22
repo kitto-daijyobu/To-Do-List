@@ -2127,36 +2127,42 @@ body.selecting .app { padding-bottom: calc(170px + env(safe-area-inset-bottom));
   }
 }
 
-/* ===== 글씨 크기: 전체적으로 한두 단계 작게 ===== */
-body { font-size: 15px; }
-.day-title { font-size: 23px; margin-bottom: 12px; }
-.day-label { font-size: 13px; }
-.cal-title { font-size: 15px; }
-.cal-num { font-size: 12px; }
-.home-name { font-size: 16px; }
-.home-bio { font-size: 12px; }
-.profile-photo.home-photo { width: 46px; height: 46px; font-size: 18px; }
-.view-title { font-size: 22px; }
-.planner-date { font-size: 16px; }
-.section-title { font-size: 15px; }
-.profile-name { font-size: 15px; }
-.profile-email, .profile-bio { font-size: 13px; }
-.settings-item, .sheet-action, .menu-item, .archive-item { font-size: 14px; }
-.sheet-head h2, .todo-sheet-title { font-size: 16px; }
-.cat-head { font-size: 13px; }
-.todo-title, button.todo-title { font-size: 15px; }
-.progress-text { font-size: 13px; }
-.blk-start { font-size: 15px; }
-.blk-end { font-size: 13px; }
-.my-code { font-size: 20px; }
-.study-total b { font-size: 18px; }
-.timer-time { font-size: clamp(36px, 12vw, 50px); }
-.friend-chip { font-size: 13px; }
+/* ===== 글씨 크기: 처음보다 한 단계 작게 (너무 작지 않게) ===== */
+body { font-size: 15.5px; }
+.day-title { font-size: 25px; margin-bottom: 12px; }
+.day-label { font-size: 13.5px; }
+.cal-title { font-size: 16px; }
+.cal-num { font-size: 12.5px; }
+.home-name { font-size: 17px; }
+.home-bio { font-size: 12.5px; }
+.profile-photo.home-photo { width: 50px; height: 50px; font-size: 19px; }
+.view-title { font-size: 24px; }
+.planner-date { font-size: 17px; }
+.section-title { font-size: 16px; }
+.profile-name { font-size: 16px; }
+.profile-email, .profile-bio { font-size: 13.5px; }
+.settings-item, .sheet-action, .menu-item, .archive-item { font-size: 15px; }
+.sheet-head h2, .todo-sheet-title { font-size: 17px; }
+.cat-head { font-size: 13.5px; }
+.todo-title, button.todo-title { font-size: 15.5px; }
+.progress-text { font-size: 13.5px; }
+.blk-start { font-size: 15.5px; }
+.blk-end { font-size: 13.5px; }
+.my-code { font-size: 22px; }
+.study-total b { font-size: 20px; }
+.timer-time { font-size: clamp(38px, 12.5vw, 53px); }
+.friend-chip { font-size: 13.5px; }
 
 @media (max-width: 480px) {
-  .day-title { font-size: 21px; }
-  .view-title { font-size: 20px; }
+  .day-title { font-size: 22.5px; }
+  .view-title { font-size: 22px; }
 }
+
+.item-add .primary-button { flex-shrink: 0; white-space: nowrap; }
+.item-add .edit-input { min-width: 0; }
+
+/* 친구 창 안의 카드는 바탕 없이 */
+#friends-dialog .friend-card { padding: 0; margin: 0; box-shadow: none; }
 
 /* ===== 휴대폰: 누를 때 생기는 회색 상자·남는 회색 배경 없애기 ===== */
 * { -webkit-tap-highlight-color: transparent; }

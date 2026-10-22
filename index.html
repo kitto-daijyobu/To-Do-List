@@ -188,27 +188,11 @@
         </div>
       </div>
 
-      <h2 class="section-title">친구</h2>
-      <div class="friend-card">
-        <div class="code-row">
-          <div>
-            <p class="field-label">내 친구 코드</p>
-            <p id="my-code" class="my-code">······</p>
-          </div>
-          <button id="copy-code" class="chip-button" type="button">복사</button>
-        </div>
-        <form id="follow-form" class="item-add" autocomplete="off">
-          <input id="follow-code" class="edit-input" maxlength="8" placeholder="친구 코드 입력" autocapitalize="characters" aria-label="친구 코드">
-          <button class="primary-button" type="submit">팔로우 요청</button>
-        </form>
-        <p id="follow-msg" class="follow-msg" role="status"></p>
-        <div id="friend-lists"></div>
-      </div>
-
       <ul class="settings-list">
         <li><button id="open-profile" class="settings-item" type="button">프로필 설정</button></li>
         <li><button id="push-toggle" class="settings-item" type="button">알림 받기<span id="push-state" class="soon-badge">꺼짐</span></button></li>
         <li id="push-test-row" hidden><button id="push-test" class="settings-item" type="button">시험 알림 보내기</button></li>
+        <li><button id="open-friends" class="settings-item" type="button">친구<span id="friends-badge" class="soon-badge on" hidden></span></button></li>
         <li><button class="settings-item" type="button" data-soon="테마 설정">테마 설정<span class="soon-badge">준비 중</span></button></li>
       </ul>
 
@@ -290,6 +274,29 @@
       <button id="block-close" class="icon-button" type="button" aria-label="닫기">×</button>
     </div>
     <div id="block-body"></div>
+  </dialog>
+
+  <!-- 친구 (개인정보 → 친구) -->
+  <dialog id="friends-dialog" class="sheet routine-sheet" aria-labelledby="friends-title">
+    <div class="sheet-head">
+      <h2 id="friends-title">친구</h2>
+      <button id="friends-close" class="icon-button" type="button" aria-label="닫기">×</button>
+    </div>
+    <div class="friend-card">
+      <div class="code-row">
+        <div>
+          <p class="field-label">내 친구 코드</p>
+          <p id="my-code" class="my-code">······</p>
+        </div>
+        <button id="copy-code" class="chip-button" type="button">복사</button>
+      </div>
+      <form id="follow-form" class="item-add" autocomplete="off">
+        <input id="follow-code" class="edit-input" maxlength="8" placeholder="친구 코드 입력" autocapitalize="characters" aria-label="친구 코드">
+        <button class="primary-button" type="submit">팔로우 요청</button>
+      </form>
+      <p id="follow-msg" class="follow-msg" role="status"></p>
+      <div id="friend-lists"></div>
+    </div>
   </dialog>
 
   <!-- 이모지·댓글 -->

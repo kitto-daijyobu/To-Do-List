@@ -3071,9 +3071,11 @@ async function startSocial() {
     renderFriendStrip();
     renderFriendLists();
     const pending = state.toMe.filter((f) => f.status === 'pending').length;
-    const badge = document.getElementById('me-badge');
-    badge.hidden = !pending;
-    badge.textContent = pending;
+    for (const badge of [document.getElementById('me-badge'), document.getElementById('friends-badge')]) {
+      badge.hidden = !pending;
+      badge.textContent = pending ? `요청 ${pending}` : '';
+    }
+    document.getElementById('me-badge').textContent = pending;
   }, markSocialBroken);
 }
 
@@ -3118,6 +3120,8 @@ function renderFriendStrip() {
   const add = el('button', { type: 'button', className: 'friend-chip add', textContent: '+ 친구' });
   add.addEventListener('click', () => {
     showTab('me');
+    renderFriendLists();
+    $friendsDialog.showModal();
     document.getElementById('follow-code').focus();
   });
   chips.push(add);
@@ -3249,6 +3253,17 @@ document.getElementById('copy-code').addEventListener('click', async (e) => {
     e.target.textContent = '복사됨';
     setTimeout(() => { e.target.textContent = '복사'; }, 1500);
   } catch { /* 복사가 안 되는 브라우저면 코드를 보고 직접 알려 주면 돼요 */ }
+});
+
+// 개인정보 → 친구 창
+const $friendsDialog = document.getElementById('friends-dialog');
+document.getElementById('open-friends').addEventListener('click', () => {
+  renderFriendLists();
+  $friendsDialog.showModal();
+});
+document.getElementById('friends-close').addEventListener('click', () => $friendsDialog.close());
+$friendsDialog.addEventListener('click', (e) => {
+  if (e.target === $friendsDialog) $friendsDialog.close();
 });
 
 document.getElementById('toggle-friends').addEventListener('click', () => setFriendsCollapsed(!$friendStrip.hidden));
@@ -3761,7 +3776,7 @@ if (!isConfigured) {
       stopWatchingFriendReactions();
       myReactions = [];
       studyLogs = [];
-      for (const dialog of [$reactDialog, $noticeDialog]) dialog.close();
+      for (const dialog of [$reactDialog, $noticeDialog, $friendsDialog]) dialog.close();
       viewing = null;
       mineSaved = null;
       document.body.classList.remove('viewing-friend');
