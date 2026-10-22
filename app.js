@@ -10,10 +10,13 @@ import {
   social,
 } from './cloud.js';
 import { PUSH } from './push-config.js';
-import { THEMES, findTheme } from './themes.js';
+import { THEMES, findTheme, resolveTheme, darkQuery } from './themes.js';
 
 // 지금 테마 (index.html 맨 위에서 먼저 입혀 둔 값)
-let theme = findTheme(document.documentElement.dataset.theme);
+// themeChoice = 고른 것('auto' 포함), theme = 지금 실제로 입은 테마
+let themeChoice = 'base';
+try { themeChoice = findTheme(localStorage.getItem('mytodo.theme')).id; } catch { /* 괜찮아요 */ }
+let theme = resolveTheme(themeChoice);
 document.documentElement.dataset.theme = theme.id;
 
 // ===== 부드러운 창(시트) =====
@@ -838,7 +841,59 @@ function cloverSvg(leafColors) {
     `</defs><g clip-path="url(#${id}c)" opacity="0.9"><g filter="url(#${id}f)">${patches}</g></g></svg>`;
 }
 
+// ===== 🌙 우주 테마: 달 =====
+// f = 위상 (0 삭 → 0.25 상현 → 0.5 보름 → 0.75 하현 → 1 다시 삭)
+// 밝은 쪽 = 반원 + 반타원(가로 반지름 = r·|cos 2πf|)
+function moonLitPath(f, cx, cy, r) {
+  const rx = (r * Math.abs(Math.cos(2 * Math.PI * f))).toFixed(2);
+  const waxing = f < 0.5;
+  const crescent = f < 0.25 || f > 0.75;
+  const outer = waxing ? 1 : 0;
+  const inner = waxing ? (crescent ? 0 : 1) : (crescent ? 1 : 0);
+  return `M${cx} ${cy - r}A${r} ${r} 0 0 ${outer} ${cx} ${cy + r}A${rx} ${r} 0 0 ${inner} ${cx} ${cy - r}Z`;
+}
+
+// 달력 마크: 그날 끝낸 비율만큼 차오르는 달 (다 끝내면 빛나는 보름달)
+function moonMarkSvg(total, done) {
+  const disk = '<circle cx="20" cy="20" r="15" class="moon-dark"/>';
+  if (!total || !done) return `<svg viewBox="0 0 40 40" aria-hidden="true">${disk}</svg>`;
+  if (done === total) return '<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="15" class="moon-full"/></svg>';
+  const f = 0.5 * (done / total);
+  return `<svg viewBox="0 0 40 40" aria-hidden="true">${disk}<path d="${moonLitPath(f, 20, 20, 15)}" class="moon-lit"/></svg>`;
+}
+
+// 실제 달 위상: 기준 삭(신월) 2000-01-06 18:14 UTC, 삭망월 29.530588853일
+const NEW_MOON_2000 = Date.UTC(2000, 0, 6, 18, 14);
+const SYNODIC_DAYS = 29.530588853;
+const PHASE_NAMES = ['NEW MOON', 'WAXING CRESCENT', 'FIRST QUARTER', 'WAXING GIBBOUS', 'FULL MOON', 'WANING GIBBOUS', 'LAST QUARTER', 'WANING CRESCENT'];
+
+function moonPhaseOf(date) {
+  const noon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12);
+  const days = (noon - NEW_MOON_2000) / 86400000;
+  return (((days / SYNODIC_DAYS) % 1) + 1) % 1;
+}
+
+function renderSpaceMoon() {
+  const box = document.getElementById('space-moon');
+  if (theme.id !== 'space') { box.replaceChildren(); return; }
+  const f = moonPhaseOf(selectedDate);
+  const name = PHASE_NAMES[Math.round(f * 8) % 8];
+  // 북두칠성 (국자 4개 + 손잡이 3개)
+  const stars = [[4, 16], [14, 12], [16, 22], [6, 25], [24, 9], [33, 7], [42, 10]];
+  const lines = [0, 1, 2, 3, 0].map((i) => stars[i].join(',')).join(' ');
+  const handle = [1, 4, 5, 6].map((i) => stars[i].join(',')).join(' ');
+  box.innerHTML =
+    `<svg class="dipper" viewBox="0 0 46 30"><g transform="rotate(18 23 15)">` +
+    `<polyline points="${lines}"/><polyline points="${handle}"/>` +
+    stars.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.3"/>`).join('') +
+    `</g></svg>` +
+    `<svg class="moon" viewBox="0 0 66 66"><circle cx="33" cy="33" r="31" class="moon-dark"/>` +
+    `<path d="${moonLitPath(f, 33, 33, 31)}" class="moon-lit"/></svg>` +
+    `<span class="moon-name">${name}</span>`;
+}
+
 function renderCalendar() {
+  renderSpaceMoon();
   const year = viewMonth.getFullYear();
   const month = viewMonth.getMonth();
   $calTitle.textContent = `${year}년 ${month + 1}월`;
@@ -881,6 +936,10 @@ function renderCalendar() {
       if (total && done === total) inner = checkSvg.replace('<svg', '<svg class="clover-check"');
       else if (total) inner = `<span class="clover-count">${total - done}</span>`;
       clover.innerHTML = cloverSvg(leafColors) + inner;
+    } else if (theme.mark === 'moon') {
+      // 우주: 끝낸 만큼 차오르는 달 (숫자 없음)
+      clover.className = 'moon-mark' + (total && done === total ? ' full' : '');
+      clover.innerHTML = moonMarkSvg(total, done);
     } else {
       // 다른 테마: 빈 날 / 진행 중(남은 개수) / 다 끝냄(✓)
       clover.className = 'mark' + (total && done === total ? ' full' : total ? ' part' : '');
@@ -3847,13 +3906,15 @@ const $themeDialog = document.getElementById('theme-dialog');
 
 // 테마 바꾸기: 화면 색을 바꾸고, 이 기기와 내 계정(다른 기기)에 기억해요
 function applyTheme(id, { remember = true } = {}) {
-  theme = findTheme(id);
+  themeChoice = findTheme(id).id;
+  theme = resolveTheme(themeChoice);
   document.documentElement.dataset.theme = theme.id;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.statusColor);
-  try { localStorage.setItem('mytodo.theme', theme.id); } catch { /* 괜찮아요 */ }
-  document.getElementById('theme-name').textContent = theme.name.split(' · ')[0];
-  if (remember && currentUser && profile?.theme !== theme.id) {
-    profile = { ...(profile || {}), theme: theme.id };
+  try { localStorage.setItem('mytodo.theme', themeChoice); } catch { /* 괜찮아요 */ }
+  document.getElementById('theme-name').textContent = findTheme(themeChoice).name;
+  loadThemeFonts();
+  if (remember && currentUser && profile?.theme !== themeChoice) {
+    profile = { ...(profile || {}), theme: themeChoice };
     save(remote.saveProfile(profile));
   }
   if (currentUser) {
@@ -3871,12 +3932,12 @@ function renderThemes() {
       return dot;
     }));
     preview.style.background = t.swatches[0];
-    const card = el('button', { type: 'button', className: 'theme-card' + (t.id === theme.id ? ' on' : ''), disabled: !t.ready }, [
+    const card = el('button', { type: 'button', className: 'theme-card' + (t.id === themeChoice ? ' on' : ''), disabled: !t.ready }, [
       preview,
       el('span', { className: 'theme-name', textContent: t.name }),
       el('span', { className: 'theme-sub', textContent: t.ready ? t.sub : '곧 나와요' }),
     ]);
-    card.setAttribute('aria-pressed', String(t.id === theme.id));
+    card.setAttribute('aria-pressed', String(t.id === themeChoice));
     card.addEventListener('click', () => applyTheme(t.id));
     return card;
   }));
@@ -3890,7 +3951,20 @@ document.getElementById('theme-close').addEventListener('click', () => $themeDia
 $themeDialog.addEventListener('click', (e) => {
   if (e.target === $themeDialog) $themeDialog.close();
 });
-document.getElementById('theme-name').textContent = theme.name.split(' · ')[0];
+document.getElementById('theme-name').textContent = findTheme(themeChoice).name;
+
+// 우주 테마 글꼴은 우주를 입을 때만 받아요
+function loadThemeFonts() {
+  if (theme.id !== 'space' || document.getElementById('space-fonts')) return;
+  const link = el('link', { id: 'space-fonts', rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono&display=swap' });
+  document.head.append(link);
+}
+loadThemeFonts();
+
+// 사용자 지정: 폰이 다크모드로 바뀌면(해 지면 등) 바로 따라 바꿔요
+darkQuery.addEventListener('change', () => {
+  if (themeChoice === 'auto') applyTheme('auto', { remember: false });
+});
 
 document.getElementById('open-profile').addEventListener('click', openProfileForm);
 document.getElementById('profile-close').addEventListener('click', () => $profileDialog.close());
@@ -4035,7 +4109,7 @@ if (!isConfigured) {
       onProfile: (data) => {
         profile = data;
         // 다른 기기에서 고른 테마를 따라가요
-        if (profile?.theme && profile.theme !== theme.id) applyTheme(profile.theme, { remember: false });
+        if (profile?.theme && profile.theme !== themeChoice) applyTheme(profile.theme, { remember: false });
         renderProfile();
         publishProfile();
         startSocial(); // 프로필을 받은 뒤에 시작해요 (친구 코드가 겹쳐 만들어지지 않게)

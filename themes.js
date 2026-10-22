@@ -21,9 +21,21 @@ const MATCHA = [
   { name: '숲', dot: '#2f5d3a', bg: '#cfe0d1', fg: '#1d3a24', on: '#ffffff' },
 ];
 
+// 우주: 별빛 파랑 · 보라 · 청록 · 금빛 (어두운 바탕 위 은은한 색)
+const SPACE = [
+  { name: '별빛', dot: '#7aa7e8', bg: 'rgba(122,167,232,.14)', fg: '#a9c6f0', on: '#0d1420' },
+  { name: '성운', dot: '#a99be8', bg: 'rgba(169,155,232,.14)', fg: '#c3b8f2', on: '#0d1420' },
+  { name: '오로라', dot: '#6cc5c0', bg: 'rgba(108,197,192,.14)', fg: '#94d8d4', on: '#0d1420' },
+  { name: '금성', dot: '#f2c98a', bg: 'rgba(242,201,138,.14)', fg: '#f2d3a3', on: '#0d1420' },
+  { name: '화성', dot: '#e89a9a', bg: 'rgba(232,154,154,.14)', fg: '#f0b8b8', on: '#0d1420' },
+  { name: '혜성', dot: '#cfe0ff', bg: 'rgba(207,224,255,.12)', fg: '#dde8ff', on: '#0d1420' },
+  { name: '해왕성', dot: '#5b8dd6', bg: 'rgba(91,141,214,.16)', fg: '#93b5e8', on: '#0d1420' },
+  { name: '은하수', dot: '#c79be8', bg: 'rgba(199,155,232,.14)', fg: '#dcbdf2', on: '#0d1420' },
+];
+
 export const THEMES = [
   {
-    id: 'base', name: '기본 · 맑은 블루', sub: '지금 앱 그대로',
+    id: 'base', name: '기본 테마', sub: '맑은 블루',
     swatches: ['#f3f6fb', '#ffffff', '#e4edf8', '#3b6ea8', '#1f2a3a'],
     statusColor: '#f3f6fb', mark: 'clover', ready: true,
   },
@@ -38,25 +50,34 @@ export const THEMES = [
     statusColor: '#2b5fb4', mark: 'shape', ready: false,
   },
   {
-    id: 'iphone', name: '아이폰 2007', sub: '유광 버튼 · 은회색',
+    id: 'iphone', name: '2007 아이폰', sub: '유광 버튼 · 은회색',
     swatches: ['#dce2ea', '#ffffff', '#6e86a7', '#4f93e0', '#000000'],
     statusColor: '#000000', mark: 'shape', ready: true,
   },
   {
-    id: 'dark', name: '다크 · 부드러운 밤', sub: '눈이 편한 밤 화면',
+    id: 'dark', name: '다크모드', sub: '눈이 편한 밤 화면',
     swatches: ['#1d1e22', '#26272c', '#303137', '#8fb2ec', '#e9e7e2'],
     statusColor: '#1d1e22', mark: 'clover', ready: true,
   },
   {
-    id: 'wish', name: '소녀 · 위시코어', sub: '파스텔 · 손글씨',
+    id: 'wish', name: '위시코어', sub: '파스텔 · 손글씨',
     swatches: ['#fde6ee', '#fdfbfb', '#8ec1ec', '#f6a9c3', '#9cc98a'],
     statusColor: '#fde6ee', mark: 'shape', ready: false,
   },
   {
-    id: 'space', name: '우주 · 달을 향해', sub: '차오르는 달',
+    id: 'space', name: '우주', sub: '끝낸 만큼 차오르는 달',
     swatches: ['#0d1420', '#162031', '#7aa7e8', '#cfe0ff', '#ebe5d4'],
-    statusColor: '#0d1420', mark: 'shape', ready: false,
+    statusColor: '#0d1420', mark: 'moon', palette: SPACE, ready: true,
+  },
+  {
+    id: 'auto', name: '사용자 지정', sub: '폰 설정 따라 기본 ↔ 다크',
+    swatches: ['linear-gradient(90deg,#f3f6fb 50%,#1d1e22 50%)', '#ffffff', '#3b6ea8', '#26272c', '#8fb2ec'],
+    statusColor: '#f3f6fb', mark: 'clover', ready: true,
   },
 ];
 
 export const findTheme = (id) => THEMES.find((t) => t.id === id && t.ready) || THEMES[0];
+
+// '사용자 지정'은 폰(컴퓨터)이 다크모드인지 보고 기본 또는 다크로 바꿔 입어요
+export const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+export const resolveTheme = (id) => findTheme(id === 'auto' ? (darkQuery.matches ? 'dark' : 'base') : id);

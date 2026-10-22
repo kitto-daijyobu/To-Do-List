@@ -2729,3 +2729,119 @@ body {
 }
 [data-theme="iphone"] .tab[aria-current="page"] .icon-fill { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.95)); }[data-theme="iphone"] .menu-button[aria-expanded="true"],
 [data-theme="iphone"] .menu-button:hover { color: #fff; background: linear-gradient(#7d93b1, #4f6b93 50%, #3d5a83 51%, #4a6790); border-color: #34486a; }
+/* =====================================================================
+   🌙 우주
+   ===================================================================== */
+:root[data-theme="space"] {
+  --bg: #0d1420;
+  --bg-image: radial-gradient(circle at 85% 8%, #1d2c47 0, #0d1420 50%);
+  --surface: rgba(18, 27, 42, 0.85);
+  --text: #e6ecf5;
+  --text-2: #c9d3e2;
+  --text-muted: #8392a8;
+  --text-faint: #56657c;
+  --border: #22304a;
+  --border-strong: #2c3d5a;
+  --primary: #7aa7e8;
+  --on-primary: #0d1420;
+  --primary-soft: #1f2d45;
+  --primary-soft-hover: #26365a;
+  --primary-hover: #8fb3ee;
+  --danger: #e89a9a;
+  --danger-soft: #3a2630;
+  --sunday: #e89a9a;
+  --saturday: #7aa7e8;
+  --hover: rgba(255, 255, 255, 0.04);
+  --hover-strong: rgba(255, 255, 255, 0.07);
+  --overlay: rgba(0, 0, 0, 0.6);
+  --toast-bg: #1f2d45;
+  --box-empty: #3a4a63;
+  --sel-bg: #cfe0ff;
+  --sel-fg: #0d1420;
+  --today-pill-bg: #1f2d45;
+  --today-pill-fg: #cfe0ff;
+  --prog-track: #1c283b;
+  --prog-fill: linear-gradient(90deg, #3a5d96, #cfe0ff);
+  --btn-bg: rgba(22, 32, 49, 0.8);
+  --btn-border: #26344b;
+  --btn-color: #a9b8cc;
+  --tab-bg: rgba(13, 20, 32, 0.94);
+  --tab-border: #1c283b;
+  --tab-active: #cfe0ff;
+  --tab-active-bg: #1f2d45;
+  --tab-inactive: #56657c;
+  --shadow: none;
+  --font: 'Noto Sans KR', 'Pretendard', sans-serif;
+  color-scheme: dark;
+}
+/* 희미한 별 (화면에 고정된 별 무늬) */
+[data-theme="space"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 23px 41px, rgba(255,255,255,.6), transparent),
+    radial-gradient(2px 2px at 87px 132px, rgba(255,255,255,.35), transparent),
+    radial-gradient(1.5px 1.5px at 151px 18px, rgba(255,255,255,.7), transparent),
+    radial-gradient(2.5px 2.5px at 212px 97px, rgba(207,224,255,.5), transparent),
+    radial-gradient(1.5px 1.5px at 268px 201px, rgba(255,255,255,.3), transparent),
+    radial-gradient(2px 2px at 41px 233px, rgba(255,255,255,.5), transparent),
+    radial-gradient(1.5px 1.5px at 129px 287px, rgba(255,255,255,.25), transparent),
+    radial-gradient(2px 2px at 297px 61px, rgba(255,255,255,.55), transparent),
+    radial-gradient(1.5px 1.5px at 183px 171px, rgba(255,255,255,.4), transparent),
+    radial-gradient(2.5px 2.5px at 66px 311px, rgba(207,224,255,.6), transparent),
+    radial-gradient(1.5px 1.5px at 244px 268px, rgba(255,255,255,.45), transparent),
+    radial-gradient(2px 2px at 9px 152px, rgba(255,255,255,.3), transparent);
+  background-size: 320px 330px;
+}
+[data-theme="space"] body { background: var(--bg-image), var(--bg); background-attachment: fixed; }
+[data-theme="space"] .calendar,
+[data-theme="space"] .settings-list,
+[data-theme="space"] .profile-card,
+[data-theme="space"] .study-card,
+[data-theme="space"] .blk:not(.rest) { border: 1px solid var(--border); }
+[data-theme="space"] .cal-title { font-family: 'Space Mono', 'Noto Sans KR', monospace; font-weight: 400; font-size: 17px; }
+[data-theme="space"] .cal-num,
+[data-theme="space"] .progress-text { font-family: 'Space Mono', monospace; }
+[data-theme="space"] .cal-num { color: #c9d3e2; }
+[data-theme="space"] .day-title { font-weight: 300; }
+[data-theme="space"] .home-name { font-weight: 500; }
+[data-theme="space"] .profile-photo.home-photo { background: #162031; box-shadow: 0 0 0 1px #2c3d5a, 0 0 24px rgba(122, 167, 232, 0.25); }
+/* 진행 바: 4px 빛나는 궤적 */
+[data-theme="space"] .progress-bar { height: 4px; border-radius: 2px; }
+[data-theme="space"] .progress-fill { box-shadow: 0 0 10px rgba(180, 205, 255, 0.6); border-radius: 2px; }
+/* 카테고리: 은은한 바탕 + 옅은 테두리 */
+[data-theme="space"] .cat-section,
+[data-theme="space"] .cat-section.soft-color { --cat-on: #0d1420; }
+[data-theme="space"] .cat-plus { background: rgba(255, 255, 255, 0.07); box-shadow: none; }
+/* 체크 표시 = 작은 별 ✦ */
+[data-theme="space"] .todo-item.done .check svg { display: none; }
+[data-theme="space"] .todo-item.done .check::after { content: "✦"; font-size: 13px; line-height: 1; }
+[data-theme="space"] .todo-item.done .todo-title { color: #56657c; }
+
+/* 달력 마크: 차오르는 달 */
+.moon-mark { position: relative; display: grid; place-items: center; width: 32px; height: 32px; }
+.moon-mark svg { width: 100%; height: 100%; overflow: visible; }
+.moon-dark { fill: #172234; stroke: #23375a; stroke-width: 1; }
+.moon-lit { fill: #cfe0ff; }
+.moon-full { fill: #e8f0ff; stroke: #cfe0ff; filter: drop-shadow(0 0 4px rgba(180, 205, 255, 0.75)); }
+.cal-day.selected .moon-dark { stroke: #cfe0ff; stroke-width: 1.5; }
+
+/* 프로필 오른쪽 달 + 북두칠성 */
+.space-moon { display: none; }
+[data-theme="space"] .space-moon {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 18px 4px 0 0;
+}
+.space-moon .moon { width: 66px; height: 66px; filter: drop-shadow(0 0 14px rgba(180, 205, 255, 0.25)); }
+.space-moon .moon .moon-dark { fill: #162031; stroke: #2c3d5a; }
+.space-moon .moon-name { font-family: 'Space Mono', monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #8392a8; }
+.space-moon .dipper { position: absolute; top: -6px; left: -48px; width: 46px; height: 30px; opacity: 0.45; }
+.space-moon .dipper polyline { fill: none; stroke: #cfe0ff; stroke-width: 0.6; }
+.space-moon .dipper circle { fill: #ffffff; }

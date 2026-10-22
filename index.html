@@ -18,7 +18,11 @@
   <link rel="stylesheet" href="style.css">
   <script>
     // 고른 테마를 화면이 그려지기 전에 먼저 입혀요 (깜빡임 방지)
-    try { document.documentElement.dataset.theme = localStorage.getItem('mytodo.theme') || 'base'; } catch (e) { document.documentElement.dataset.theme = 'base'; }
+    try {
+      var t = localStorage.getItem('mytodo.theme') || 'base';
+      if (t === 'auto') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'base';
+      document.documentElement.dataset.theme = t;
+    } catch (e) { document.documentElement.dataset.theme = 'base'; }
   </script>
 </head>
 <body data-screen="loading" data-tab="home">
@@ -64,6 +68,8 @@
           <p id="home-name" class="home-name"></p>
           <p id="home-bio" class="home-bio"></p>
         </div>
+        <!-- 우주 테마: 고른 날의 실제 달 모양 + 북두칠성 -->
+        <div id="space-moon" class="space-moon" aria-hidden="true"></div>
       </div>
     </section>
 
