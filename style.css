@@ -2582,7 +2582,7 @@ body {
   --btn-bg: linear-gradient(#8da3c1, #5f7ba2 50%, #4d6a93 51%, #5a77a0);
   --btn-border: #34486a;
   --btn-color: #ffffff;
-  --tab-bg: linear-gradient(#5c5c5c 0, #2e2e2e 1px, #1c1c1c 50%, #000 51%);
+  --tab-bg: linear-gradient(#5c5c5c 0, #2e2e2e 1px, #1c1c1c 26px, #000 27px) top / 100% 100% no-repeat, #000;
   --tab-border: #000;
   --tab-active: #ffffff;
   --tab-inactive: #9a9a9a;
@@ -2843,7 +2843,7 @@ body {
   flex-shrink: 0;
 }
 .space-moon .moon-name { white-space: nowrap; text-align: center; }
-.space-moon .moon { flex: none; width: 66px; height: 66px; filter: drop-shadow(0 0 14px rgba(247, 228, 160, 0.3)); }
+.space-moon .moon { flex: none; width: 60px; height: 60px; filter: drop-shadow(0 0 14px rgba(247, 228, 160, 0.3)); }
 .space-moon .moon .moon-dark { fill: #162031; stroke: #2c3d5a; }
 .space-moon .moon-name { font-family: 'Space Mono', monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #8392a8; }
 .space-moon .dipper { position: absolute; top: 2px; left: -67px; width: 62px; height: 34px; overflow: visible; opacity: 0.45; transform: rotate(18deg) scale(0.85); }
@@ -3391,3 +3391,36 @@ html[data-theme="cereal"] { overflow-x: clip; }
   margin: 0;
   transform: translateY(-50%);
 }
+/* ----- 친구 반응: 할 일 아래 이모지 스티커 (투두메이트처럼 숫자·상자 없이) ----- */
+.react-line { gap: 2px; margin: 0 0 2px; }
+.react-sticker { font-size: 21px; line-height: 1.15; }
+.react-more { align-self: center; margin-left: 4px; font-size: 12px; color: var(--text-muted); }
+
+/* ----- 폰: 하단바 얇게 (아이콘은 홈 표시줄 가까이) ----- */
+@media (max-width: 600px) {
+  .tabbar { padding: 3px 12px calc(env(safe-area-inset-bottom) * 0.55 + 3px); }
+  .tab { padding: 4px 0 2px; gap: 1px; }
+  .tab svg { width: 22px; height: 22px; }
+  [data-theme="wish"] .tab,
+  [data-theme="iphone"] .tab { padding-top: 5px; padding-bottom: 5px; }
+  [data-theme="iphone"] .tab .icon-fill { width: 26px; height: 26px; }
+  [data-theme="wish"] .tab .icon-wish { width: 30px; height: 27px; }
+}
+
+/* ----- 우주: 위로 당겨도 밤하늘이 끊기지 않게 (그라데이션을 화면에 고정된 층으로) ----- */
+html[data-theme="space"] { background: #0d1420; }
+[data-theme="space"] body { background: transparent; }
+html[data-theme="space"]::before {
+  content: "";
+  position: fixed;
+  inset: -50vh 0;
+  z-index: -2;
+  background: radial-gradient(circle at 85% 40%, #1d2c47 0, #0d1420 40%);
+  pointer-events: none;
+}
+/* 한 줄 소개가 한 줄에 들어가게: 달 칸을 좁히고 글씨를 디자인 크기(12.5px)로 */
+[data-theme="space"] .space-moon { width: 84px; }
+[data-theme="space"] .space-moon .moon-name { font-size: 8px; letter-spacing: 0.04em; }
+[data-theme="space"] .space-moon .dipper { left: -82px; }
+[data-theme="space"] .me-row { gap: 12px; }
+[data-theme="space"] .home-bio { font-size: 12.5px; }

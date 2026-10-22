@@ -524,6 +524,7 @@ function toggleTodo(id) {
   todo.done = !todo.done;
   todo.doneAt = todo.done ? Date.now() : null;
   save(remote.updateTodo(id, { done: todo.done, doneAt: todo.doneAt }));
+  if (todo.done) notifyDone(todo);
   render();
 }
 
@@ -3654,14 +3655,14 @@ function groupEmojis(list) {
   return [...groups.values()];
 }
 
-// 할 일 아래 작은 반응 줄 (👏 2 · 💬 1)
+// 할 일 아래 작은 반응 줄: 투두메이트처럼 친구가 남긴 이모지를 스티커처럼 나란히 (댓글만 있으면 💬)
 function reactionLine(todo) {
   const list = reactionsFor(targetKeyOf(todo));
   if (!list.length) return null;
-  const comments = list.filter((r) => r.text).length;
+  const shown = list.slice(0, 8);
   const line = el('button', { type: 'button', className: 'react-line' }, [
-    ...groupEmojis(list).map((g) => el('span', { className: 'react-pill' + (g.mine ? ' mine' : ''), textContent: `${g.emoji} ${g.people.length}` })),
-    comments ? el('span', { className: 'react-pill', textContent: `💬 ${comments}` }) : '',
+    ...shown.map((r) => el('span', { className: 'react-sticker', textContent: r.emoji || '💬' })),
+    list.length > shown.length ? el('span', { className: 'react-more', textContent: `+${list.length - shown.length}` }) : '',
   ]);
   line.setAttribute('aria-label', '반응 보기');
   line.addEventListener('click', (e) => {
@@ -3974,13 +3975,32 @@ function scheduleTimerPush() {
   }
 }
 
-// 친구 할 일에 반응하면 그 친구에게 알림
+// 친구 할 일에 반응하면 그 친구에게 알림 (투두메이트 문구 그대로)
+//   제목 = 내 이름
+//   이모지만: ❤️ 당신의 "할 일" 할 일을 좋아합니다
+//   댓글:     ❤️ 당신의 "할 일"에 메시지를 남겼습니다: "댓글"
 function notifyReaction(ownerUid, reaction, todoTitle) {
   if (!pushReady() || ownerUid === currentUser.uid) return;
   const name = profileView().nickname.slice(0, 20);
-  const what = reaction.emoji ? `${reaction.emoji} ` : '💬 ';
-  const body = `${what}${reaction.text ? reaction.text : todoTitle}`.slice(0, 200);
-  remote.setPushJob(newId(), { to: ownerUid, at: Date.now(), title: `${name}님이 반응했어요`, body, tag: 'reaction' })
+  const what = reaction.emoji || '💬';
+  const title = todoTitle.slice(0, 40);
+  const body = (reaction.text
+    ? `${what} 당신의 "${title}"에 메시지를 남겼습니다: "${reaction.text}"`
+    : `${what} 당신의 "${title}" 할 일을 좋아합니다`).slice(0, 200);
+  remote.setPushJob(newId(), { to: ownerUid, at: Date.now(), title: name, body, tag: 'reaction' })
+    .then(flushPush)
+    .catch((err) => console.warn('알림:', err?.code || err));
+}
+
+// 친구에게 공개된 할 일을 끝내면 서로 친구인 사람들에게 알림: "할 일" 할 일을 완료했습니다
+function notifyDone(todo) {
+  if (!pushReady() || !todo.shared) return;
+  const iFollow = new Set(follows.mine.filter((f) => f.status === 'accepted').map((f) => f.to));
+  const friends = follows.toMe.filter((f) => f.status === 'accepted' && iFollow.has(f.from)).map((f) => f.from);
+  if (!friends.length) return;
+  const name = profileView().nickname.slice(0, 20);
+  const body = `"${todo.title.slice(0, 120)}" 할 일을 완료했습니다`;
+  Promise.all(friends.map((to) => remote.setPushJob(newId(), { to, at: Date.now(), title: name, body, tag: 'done' })))
     .then(flushPush)
     .catch((err) => console.warn('알림:', err?.code || err));
 }
