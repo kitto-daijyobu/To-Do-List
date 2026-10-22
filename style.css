@@ -80,13 +80,13 @@ button { font: inherit; }
 /* 넓은 화면(컴퓨터)에서는 달력 왼쪽, 할 일 오른쪽 */
 @media (min-width: 900px) {
   .app {
-    grid-template-columns: 380px minmax(0, 1fr);
+    grid-template-columns: 340px minmax(0, 1fr);
     align-items: start;
-    gap: 40px;
-    max-width: 1000px;
+    gap: 36px;
+    max-width: 960px;
     padding-top: 56px;
   }
-  .calendar { position: sticky; top: 32px; }
+  /* 달력은 고정하지 않고 할 일과 함께 스크롤돼요 (어지럽지 않게) */
 }
 
 /* ===== 달력 ===== */
@@ -232,7 +232,7 @@ button { font: inherit; }
 .clover-count,
 .clover-check {
   position: relative;
-  color: var(--on-primary);
+  color: var(--clover-fg, var(--on-primary));
 }
 
 .clover-count {
@@ -2459,6 +2459,8 @@ body {
   --tab-active: #e9e7e2;
   --tab-inactive: #6e6f76;
   --shadow: none;
+  --clover-empty: #34353b;
+  --clover-fg: #ffffff;
   --mark-radius: 11px;
   --mark-empty: #303137;
   --mark-part: #3a4760;
@@ -2523,6 +2525,8 @@ body {
   --tab-active-bg: #dfe5cc;
   --tab-inactive: #a3a894;
   --shadow: 0 1px 2px rgba(29, 46, 27, 0.05), 0 14px 28px -20px rgba(29, 46, 27, 0.35);
+  --clover-empty: #e2e6d3;
+  --clover-fg: #ffffff;
   --mark-radius: 50%;
   --mark-empty: #eceee2;
   --mark-part: #c8d2a6;
@@ -2625,6 +2629,17 @@ body {
   pointer-events: none;
 }
 @media (max-width: 480px) { [data-theme="iphone"] .home-top-bar { margin-top: -20px; } }
+/* 넓은 화면: 위 막대도 아래 탭바처럼 화면 끝까지 꽉 차게 (버튼 자리는 그대로) */
+@media (min-width: 600px) {
+  [data-theme="iphone"] .home-top-bar {
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding-left: calc(50vw - 50% + 10px);
+    padding-right: calc(50vw - 50% + 10px);
+  }
+  html[data-theme="iphone"] { overflow-x: clip; }
+}
+@media (min-width: 900px) { [data-theme="iphone"] .home-top-bar { margin-top: -56px; } }
 
 /* 반짝이는 네모 버튼 */
 [data-theme="iphone"] .menu-button {

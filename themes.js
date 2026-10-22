@@ -30,7 +30,7 @@ export const THEMES = [
   {
     id: 'matcha', name: '말차코어', sub: '미색 · 말차 · 라임',
     swatches: ['#f5f2e8', '#fffdf7', '#a9c632', '#9caf88', '#1d2e1b'],
-    statusColor: '#f5f2e8', mark: 'shape', palette: MATCHA, ready: true,
+    statusColor: '#f5f2e8', mark: 'clover', palette: MATCHA, ready: true,
   },
   {
     id: 'cereal', name: '시리얼 박스', sub: '원색 · 두꺼운 테두리',
@@ -45,7 +45,7 @@ export const THEMES = [
   {
     id: 'dark', name: '다크 · 부드러운 밤', sub: '눈이 편한 밤 화면',
     swatches: ['#1d1e22', '#26272c', '#303137', '#8fb2ec', '#e9e7e2'],
-    statusColor: '#1d1e22', mark: 'shape', ready: true,
+    statusColor: '#1d1e22', mark: 'clover', ready: true,
   },
   {
     id: 'wish', name: '소녀 · 위시코어', sub: '파스텔 · 손글씨',

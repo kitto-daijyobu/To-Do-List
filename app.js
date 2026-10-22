@@ -819,12 +819,23 @@ function cloverLeafColors(dayTodos) {
 
 const LEAF_CENTERS = [[13, 13], [27, 13], [27, 27], [13, 27]];
 
+// 잎 4개 색을 네 귀퉁이에 깔고 흐리게 번지게 한 뒤 클로버 모양으로 잘라요
+// → 이웃한 잎끼리 색이 그라데이션으로 섞여요
+let cloverSeq = 0;
+const LEAF_QUADRANTS = [[-20, -20], [20, -20], [20, 20], [-20, 20]];
+
 function cloverSvg(leafColors) {
-  const leaves = LEAF_CENTERS.map(([cx, cy], i) => {
-    const fill = leafColors ? leafColors[i] : 'var(--clover-empty)';
-    return `<circle cx="${cx}" cy="${cy}" r="10.5" fill="${fill}"/>`;
-  }).join('');
-  return `<svg viewBox="0 0 40 40" aria-hidden="true"><g opacity="${leafColors ? 0.85 : 1}">${leaves}</g></svg>`;
+  const shape = LEAF_CENTERS.map(([cx, cy]) => `<circle cx="${cx}" cy="${cy}" r="10.5"/>`).join('');
+  if (!leafColors) {
+    return `<svg viewBox="0 0 40 40" aria-hidden="true"><g fill="var(--clover-empty)">${shape}</g></svg>`;
+  }
+  const id = `clv${++cloverSeq}`;
+  const patches = LEAF_QUADRANTS.map(([x, y], i) =>
+    `<rect x="${x}" y="${y}" width="40" height="40" fill="${leafColors[i]}"/>`).join('');
+  return `<svg viewBox="0 0 40 40" aria-hidden="true"><defs>` +
+    `<clipPath id="${id}c">${shape}</clipPath>` +
+    `<filter id="${id}f" filterUnits="userSpaceOnUse" x="-20" y="-20" width="80" height="80"><feGaussianBlur stdDeviation="5"/></filter>` +
+    `</defs><g clip-path="url(#${id}c)" opacity="0.9"><g filter="url(#${id}f)">${patches}</g></g></svg>`;
 }
 
 function renderCalendar() {
