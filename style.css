@@ -3095,7 +3095,7 @@ html[data-theme="cereal"] { overflow-x: clip; }
 /* =====================================================================
    🎀 위시코어 (시안 그대로)
    ===================================================================== */
-@font-face { font-family: 'SDMiSaeng'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/SDMiSaeng.woff') format('woff'); font-display: swap; }
+@font-face { font-family: 'SDMiSaeng'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/SDMiSaeng.woff') format('woff'); font-display: block; }
 .icon-wish, .wish-angel, .wish-deco { display: none; }
 
 :root[data-theme="wish"] {
@@ -3434,3 +3434,26 @@ html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adj
   textarea,
   select { font-size: max(16px, 1em) !important; }
 }
+/* 날짜 제목(10월 23일 (금)): 기본·시리얼 테마에서는 숨겨요 (달력에서 고른 날로 충분) */
+[data-theme="base"] .day-title,
+[data-theme="cereal"] .day-title { display: none; }
+
+/* 시리얼: 플래너의 ‹ › 화살표가 크림색이라 안 보이던 것 → 남색 (달력 머리줄 안 화살표만 크림색) */
+[data-theme="cereal"] .planner-head .cal-nav { color: #1b2340; }
+
+/* 위시코어: 위로 당겨도 배경이 끊기지 않게 (그라데이션을 화면에 고정된 층으로) */
+html[data-theme="wish"] { background: #fdfbfb; }
+[data-theme="wish"] body { background: transparent; }
+html[data-theme="wish"]::before {
+  content: "";
+  position: fixed;
+  inset: -50vh 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 61%, rgba(251, 211, 225, 0.6), transparent 22%),
+    radial-gradient(circle at 100% 68%, rgba(217, 237, 200, 0.75), transparent 22%),
+    linear-gradient(165deg, #fde6ee 25%, #fdfbfb 50%, #e3f2dc 75%);
+}
+/* 진행 표시 끄기 (개인정보 → 진행 표시 보기) */
+body.no-progress .progress { display: none; }

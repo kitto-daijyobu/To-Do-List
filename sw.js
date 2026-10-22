@@ -1,7 +1,7 @@
 // ===== 오프라인 도우미 (서비스 워커) =====
 // 앱 파일을 기기에 저장해 두고, 인터넷이 끊겨도 앱이 열리게 해요.
 // 할 일 데이터는 Firebase가 따로 기기에 저장해 줘요.
-const CACHE = 'mytodo-v14';
+const CACHE = 'mytodo-v15';
 
 const APP_FILES = [
   './',
@@ -20,7 +20,7 @@ const APP_FILES = [
 ];
 
 // 버전이 정해진 외부 파일 (Firebase 도구, 글꼴): 한 번 받으면 바뀌지 않아요
-const IMMUTABLE_HOSTS = ['www.gstatic.com', 'cdn.jsdelivr.net'];
+const IMMUTABLE_HOSTS = ['www.gstatic.com', 'cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_FILES)));

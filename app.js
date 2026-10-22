@@ -196,16 +196,6 @@ function addDays(date, n) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + n);
 }
 
-// 제목 위 작은 글씨: 오늘 / 어제 / 내일, 그 밖에는 연도
-function formatLabel(date) {
-  const key = toDateKey(date);
-  const today = new Date();
-  if (key === toDateKey(today)) return '오늘';
-  if (key === toDateKey(addDays(today, -1))) return '어제';
-  if (key === toDateKey(addDays(today, 1))) return '내일';
-  return `${date.getFullYear()}년`;
-}
-
 // '2026-10-21' → 날짜
 function parseDateKey(key) {
   const [y, m, d] = key.split('-').map(Number);
@@ -1059,7 +1049,7 @@ function renderCalendar() {
 function renderDay() {
   const dayTodos = dayTodosOf(selectedDate);
 
-  $dayLabel.textContent = formatLabel(selectedDate);
+  $dayLabel.textContent = ''; // '오늘/어제/내일' 글씨는 쓰지 않아요 (자리는 테마 장식용)
   $dayTitle.textContent = formatTitle(selectedDate);
   renderProgress();
 
@@ -4076,7 +4066,7 @@ $themeDialog.addEventListener('click', (e) => {
 });
 document.getElementById('theme-name').textContent = findTheme(themeChoice).name;
 
-// 테마 전용 글꼴은 그 테마를 입을 때만 받아요
+// 테마 전용 글꼴은 그 테마를 입을 때만 받아요 (index.html 맨 위에서 고른 테마 것을 먼저 받기 시작해요 — 목록 같게 유지)
 const THEME_FONTS = {
   space: 'family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono',
   cereal: 'family=Jua&family=Lilita+One',
@@ -4085,10 +4075,30 @@ const THEME_FONTS = {
 function loadThemeFonts() {
   const families = THEME_FONTS[theme.id];
   if (!families || document.getElementById(`${theme.id}-fonts`)) return;
-  const link = el('link', { id: `${theme.id}-fonts`, rel: 'stylesheet', href: `https://fonts.googleapis.com/css2?${families}&display=swap` });
+  const link = el('link', { id: `${theme.id}-fonts`, rel: 'stylesheet', href: `https://fonts.googleapis.com/css2?${families}&display=block` });
   document.head.append(link);
 }
 loadThemeFonts();
+
+// 진행 표시(진행 바 + "1 / 3") 켜고 끄기: 이 기기와 내 계정에 기억해요
+function applyProgressSetting(show) {
+  document.body.classList.toggle('no-progress', !show);
+  const state = document.getElementById('progress-state');
+  state.textContent = show ? '켜짐' : '꺼짐';
+  state.classList.toggle('on', show);
+}
+let showProgress = true;
+try { showProgress = localStorage.getItem('mytodo.progress') !== 'off'; } catch { /* 괜찮아요 */ }
+applyProgressSetting(showProgress);
+document.getElementById('progress-toggle').addEventListener('click', () => {
+  showProgress = !showProgress;
+  applyProgressSetting(showProgress);
+  try { localStorage.setItem('mytodo.progress', showProgress ? 'on' : 'off'); } catch { /* 괜찮아요 */ }
+  if (currentUser) {
+    profile = { ...(profile || {}), hideProgress: !showProgress };
+    save(remote.saveProfile(profile));
+  }
+});
 
 // 사용자 지정: 폰이 다크모드로 바뀌면(해 지면 등) 바로 따라 바꿔요
 darkQuery.addEventListener('change', () => {
@@ -4251,6 +4261,12 @@ if (!isConfigured) {
         profile = data;
         // 다른 기기에서 고른 테마를 따라가요
         if (profile?.theme && profile.theme !== themeChoice) applyTheme(profile.theme, { remember: false });
+        // 다른 기기에서 바꾼 진행 표시 설정도 따라가요
+        if (typeof profile?.hideProgress === 'boolean' && profile.hideProgress === showProgress) {
+          showProgress = !profile.hideProgress;
+          applyProgressSetting(showProgress);
+          try { localStorage.setItem('mytodo.progress', showProgress ? 'on' : 'off'); } catch { /* 괜찮아요 */ }
+        }
         renderProfile();
         publishProfile();
         startSocial(); // 프로필을 받은 뒤에 시작해요 (친구 코드가 겹쳐 만들어지지 않게)

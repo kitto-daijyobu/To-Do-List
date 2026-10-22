@@ -14,6 +14,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="할 일">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <link rel="stylesheet" href="style.css">
   <script>
@@ -22,6 +24,13 @@
       var t = localStorage.getItem('mytodo.theme') || 'base';
       if (t === 'auto') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'base';
       document.documentElement.dataset.theme = t;
+      // 테마 글꼴을 화면 그리기 전에 바로 받기 시작해요 (글씨가 나중에 바뀌며 밀리는 것 줄이기)
+      var fonts = {
+        space: 'family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono',
+        cereal: 'family=Jua&family=Lilita+One',
+        wish: 'family=Gaegu:wght@400;700&family=Gowun+Dodum'
+      };
+      if (fonts[t]) document.write('<link id="' + t + '-fonts" rel="stylesheet" href="https://fonts.googleapis.com/css2?' + fonts[t] + '&display=block">');
     } catch (e) { document.documentElement.dataset.theme = 'base'; }
   </script>
 </head>
@@ -209,6 +218,7 @@
         <li><button id="open-profile" class="settings-item" type="button">프로필 설정</button></li>
         <li><button id="push-toggle" class="settings-item" type="button">알림 받기<span id="push-state" class="soon-badge">꺼짐</span></button></li>        <li><button id="open-friends" class="settings-item" type="button">친구<span id="friends-badge" class="soon-badge on" hidden></span></button></li>
         <li><button id="open-theme" class="settings-item" type="button">테마 설정<span id="theme-name" class="soon-badge"></span></button></li>
+        <li><button id="progress-toggle" class="settings-item" type="button">진행 표시 보기<span id="progress-state" class="soon-badge on">켜짐</span></button></li>
       </ul>
 
       <ul class="settings-list">
