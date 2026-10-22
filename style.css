@@ -43,7 +43,7 @@
   --card-radius: 22px;
   --radius: 14px;
   --shadow: 0 1px 2px rgba(31, 42, 58, 0.04), 0 10px 24px -14px rgba(31, 42, 58, 0.16);
-  --font: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font: "SUIT Variable", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   /* 달력 마크 (클로버가 아닌 테마에서 씀) */
   --mark-radius: 50%;
   --mark-empty: #e6ecf5;
@@ -2589,7 +2589,7 @@ body {
   --card-radius: 10px;
   --radius: 10px;
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
-  --font: "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+  --font: "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", "SUIT Variable", sans-serif;
   --emboss: 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
@@ -2771,7 +2771,7 @@ body {
   --tab-active-bg: #1f2d45;
   --tab-inactive: #56657c;
   --shadow: none;
-  --font: 'Noto Sans KR', 'Pretendard', sans-serif;
+  --font: 'Noto Sans KR', 'SUIT Variable', sans-serif;
   color-scheme: dark;
 }
 /* 희미한 별 (화면에 고정된 별 무늬) */
@@ -3137,7 +3137,7 @@ html[data-theme="cereal"] { overflow-x: clip; }
   --tab-inactive: #a7bcd2;
   --radius: 24px;
   --shadow: 0 0 0 6px rgba(255, 255, 255, 0.6), 0 14px 30px -16px rgba(80, 140, 200, 0.45);
-  --font: 'Gowun Dodum', 'Pretendard', sans-serif;
+  --font: 'Gowun Dodum', 'SUIT Variable', sans-serif;
 }
 /* 바탕: 핑크 → 흰색 → 초록, 양쪽 아래 뿌연 번짐 */
 [data-theme="wish"] body {
