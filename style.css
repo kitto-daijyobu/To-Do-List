@@ -3374,3 +3374,20 @@ html[data-theme="cereal"] { overflow-x: clip; }
 /* 배경 스티커: 뿌옇게 */
 .wish-deco .wd.dreamy { filter: blur(3px); opacity: 0.55; }
 .wish-deco .wd.soft { filter: blur(1.4px); opacity: 0.7; }
+/* 날개는 빼고 헤일로만 */
+[data-theme="wish"] .wish-angel .wing { display: none; }
+[data-theme="wish"] .me-row { padding-left: 0; }
+[data-theme="wish"] .wish-angel { left: 0; }
+
+/* 반창고: 흰 패드가 정가운데, 양 끝은 같은 길이의 구멍 무늬 (+는 오른쪽 끝에 작게) */
+[data-theme="wish"] .cat-head { position: relative; padding: 5px 34px; }
+[data-theme="wish"] .cat-title { padding: 2px 12px; border-radius: 4px; }
+[data-theme="wish"] .cat-head .cat-plus {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  transform: translateY(-50%);
+}
