@@ -2837,11 +2837,15 @@ body {
   justify-items: center;
   gap: 4px;
   margin-left: auto;
-  padding: 18px 4px 0 0;
+  padding: 18px 0 0;
+  /* 위상 이름 길이와 상관없이 달 자리·크기가 늘 같게 */
+  width: 120px;
+  flex-shrink: 0;
 }
-.space-moon .moon { width: 66px; height: 66px; filter: drop-shadow(0 0 14px rgba(247, 228, 160, 0.3)); }
+.space-moon .moon-name { white-space: nowrap; text-align: center; }
+.space-moon .moon { flex: none; width: 66px; height: 66px; filter: drop-shadow(0 0 14px rgba(247, 228, 160, 0.3)); }
 .space-moon .moon .moon-dark { fill: #162031; stroke: #2c3d5a; }
 .space-moon .moon-name { font-family: 'Space Mono', monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #8392a8; }
-.space-moon .dipper { position: absolute; top: -8px; left: -64px; width: 60px; height: 31px; opacity: 0.6; }
+.space-moon .dipper { position: absolute; top: -8px; left: -36px; width: 60px; height: 31px; opacity: 0.6; }
 .space-moon .dipper polyline { fill: none; stroke: #cfe0ff; stroke-width: 0.5; stroke-linejoin: round; }
 .space-moon .dipper circle { fill: #ffffff; }
