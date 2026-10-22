@@ -1,20 +1,57 @@
-/* ===== 색상 · 글꼴 (여기 값만 바꾸면 전체 분위기가 바뀌어요) ===== */
+/* ===== 색상 · 글꼴 (테마 설정값) =====
+   기본 테마 값이에요. 다른 테마는 이 파일 맨 아래 [data-theme="..."] 에서 덮어써요. */
 :root {
-  --bg: #f4f7fb;
-  --surface: #ffffff;
+  --bg: #f3f6fb;
+  --bg-image: none;                 /* 테마 배경 무늬·그라데이션 */
+  --surface: #ffffff;              /* 카드·창 바탕 */
   --text: #1f2a37;
+  --text-2: #4a5a70;               /* 조금 흐린 글자 */
   --text-muted: #6b7a90;
+  --text-faint: #a3afbf;           /* 아주 흐린 글자·아이콘 */
   --border: #e3e9f1;
+  --border-strong: #c8d6e8;
   --primary: #3b6ea8;
+  --on-primary: #ffffff;           /* 대표색 위 글자 */
   --primary-soft: #e6eef8;
+  --primary-soft-hover: #d6e3f3;
   --primary-hover: #2f5b8d;
   --danger: #c2524a;
-  --sunday: #c96a64;
+  --danger-soft: #fbeeed;
+  --sunday: #d0615a;
   --saturday: #4f7fc0;
   --clover-empty: #dbe3ee;
+  --hover: rgba(59, 110, 168, 0.05);
+  --hover-strong: rgba(59, 110, 168, 0.08);
+  --overlay: rgba(31, 42, 55, 0.35);
+  --toast-bg: #2b3a4d;
+  --box-empty: #c3cfdd;            /* 빈 체크칸 테두리 */
+  --box-radius: 50%;               /* 체크칸 모양 */
+  --sel-bg: var(--primary);        /* 달력 선택한 날 */
+  --sel-fg: #ffffff;
+  --today-pill-bg: var(--primary-soft);
+  --today-pill-fg: var(--primary);
+  --prog-track: var(--primary-soft);
+  --prog-fill: var(--primary);
+  --btn-bg: transparent;           /* 위쪽 동그란 아이콘 버튼 */
+  --btn-border: var(--border);
+  --btn-color: var(--text-muted);
+  --tab-bg: rgba(255, 255, 255, 0.92);
+  --tab-border: var(--border);
+  --tab-active: var(--primary);
+  --tab-active-bg: transparent;
+  --tab-inactive: #9aa7b8;
+  --card-radius: 22px;
   --radius: 14px;
-  --shadow: 0 1px 2px rgba(31, 42, 55, 0.04), 0 4px 16px rgba(31, 42, 55, 0.05);
+  --shadow: 0 1px 2px rgba(31, 42, 58, 0.04), 0 10px 24px -14px rgba(31, 42, 58, 0.16);
   --font: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  /* 달력 마크 (클로버가 아닌 테마에서 씀) */
+  --mark-radius: 50%;
+  --mark-empty: #e6ecf5;
+  --mark-part: #c4d5ee;
+  --mark-part-fg: #2f5e98;
+  --mark-full: #6d9be8;
+  --mark-full-fg: #ffffff;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -110,7 +147,7 @@ button { font: inherit; }
   transition: background 0.15s;
 }
 
-.cal-today:hover { background: #d6e3f3; }
+.cal-today:hover { background: var(--primary-soft-hover); }
 
 .cal-weekdays,
 .cal-grid {
@@ -170,7 +207,7 @@ button { font: inherit; }
 
 .cal-day.selected .cal-num {
   font-weight: 700;
-  color: #fff;
+  color: var(--on-primary);
   background: var(--primary);
   box-shadow: none;
 }
@@ -195,20 +232,20 @@ button { font: inherit; }
 .clover-count,
 .clover-check {
   position: relative;
-  color: #fff;
+  color: var(--on-primary);
 }
 
 .clover-count {
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
-  text-shadow: 0 0 3px rgba(31, 42, 55, 0.35);
+  text-shadow: 0 0 3px var(--overlay);
 }
 
 .clover-check {
   width: 15px;
   height: 15px;
-  filter: drop-shadow(0 0 1.5px rgba(31, 42, 55, 0.35));
+  filter: drop-shadow(0 0 1.5px var(--overlay));
 }
 
 /* 아직 아무것도 안 끝낸 날: 회색 클로버 + 어두운 숫자 */
@@ -249,7 +286,7 @@ button { font: inherit; }
 
 .text-button:hover {
   color: var(--primary);
-  border-color: #c8d6e8;
+  border-color: var(--border-strong);
   background: var(--surface);
 }
 
@@ -295,8 +332,8 @@ button { font: inherit; }
 }
 
 .cat-section {
-  --cat-soft: color-mix(in srgb, var(--cat) 14%, #fff);
-  --cat-ink: color-mix(in srgb, var(--cat) 70%, #1f2a37);
+  --cat-soft: color-mix(in srgb, var(--cat) 14%, var(--surface));
+  --cat-ink: color-mix(in srgb, var(--cat) 70%, var(--text));
 }
 
 .cat-head {
@@ -334,7 +371,7 @@ button.cat-head:hover { filter: brightness(0.97); }
   margin-left: 2px;
   color: var(--cat-ink);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--surface);
 }
 
 .cat-plus svg { width: 12px; height: 12px; }
@@ -359,7 +396,7 @@ button.cat-head:hover { filter: brightness(0.97); }
   transition: background 0.15s;
 }
 
-.todo-item:hover { background: rgba(59, 110, 168, 0.05); }
+.todo-item:hover { background: var(--hover); }
 
 /* 동그란 체크 버튼 (끝내면 카테고리 색으로 채워져요) */
 .check {
@@ -370,7 +407,7 @@ button.cat-head:hover { filter: brightness(0.97); }
   height: 24px;
   padding: 0;
   background: transparent;
-  border: 2px solid #c3cfdd;
+  border: 2px solid var(--box-empty);
   border-radius: 50%;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
@@ -432,7 +469,7 @@ button.todo-title {
   width: 32px;
   height: 32px;
   padding: 0;
-  color: #a3afbf;
+  color: var(--text-faint);
   background: transparent;
   border: none;
   border-radius: 8px;
@@ -448,7 +485,7 @@ button.todo-title {
 
 .more:hover {
   color: var(--text-muted);
-  background: rgba(59, 110, 168, 0.08);
+  background: var(--hover-strong);
 }
 
 /* 새 할 일 입력줄 (배경 없이 카테고리 색 밑줄만) */
@@ -464,7 +501,7 @@ button.todo-title {
 
 .add-row .check {
   border-style: dashed;
-  border-color: color-mix(in srgb, var(--cat) 60%, #c3cfdd);
+  border-color: color-mix(in srgb, var(--cat) 60%, var(--box-empty));
   cursor: default;
 }
 
@@ -479,7 +516,7 @@ button.todo-title {
   outline: none;
 }
 
-.add-input::placeholder { color: #a3afbf; }
+.add-input::placeholder { color: var(--text-faint); }
 
 .empty-message {
   margin: 28px 0 0;
@@ -500,7 +537,7 @@ button.todo-title {
   box-shadow: 0 12px 40px rgba(31, 42, 55, 0.18);
 }
 
-.sheet::backdrop { background: rgba(31, 42, 55, 0.35); }
+.sheet::backdrop { background: var(--overlay); }
 
 .sheet-head {
   display: flex;
@@ -533,7 +570,7 @@ button.todo-title {
 
 .icon-button:hover { background: var(--bg); }
 .icon-button svg { width: 17px; height: 17px; }
-.cat-delete:hover { color: var(--danger); background: #fbeeed; }
+.cat-delete:hover { color: var(--danger); background: var(--danger-soft); }
 
 .cat-list {
   list-style: none;
@@ -569,7 +606,7 @@ button.todo-title {
   width: 24px;
   height: 32px;
   padding: 0;
-  color: #b3bfce;
+  color: var(--text-faint);
   background: transparent;
   border: none;
   border-radius: 6px;
@@ -654,7 +691,7 @@ button.todo-title {
   transition: background 0.15s;
 }
 
-.cat-add:hover { background: #d6e3f3; }
+.cat-add:hover { background: var(--primary-soft-hover); }
 
 /* ===== 할 일 메뉴 ===== */
 .todo-sheet-title {
@@ -726,7 +763,7 @@ button.todo-title {
 .sheet-tile svg { width: 26px; height: 26px; color: var(--primary); }
 .sheet-tile:hover { background: var(--primary-soft); }
 .sheet-tile.danger svg { color: var(--danger); }
-.sheet-tile.danger:hover { background: #fbeeed; }
+.sheet-tile.danger:hover { background: var(--danger-soft); }
 
 .sheet-action { justify-content: flex-start; }
 .sheet-action-label { flex: 1; }
@@ -737,7 +774,7 @@ button.todo-title {
   place-items: center;
   width: 32px;
   height: 32px;
-  color: #fff;
+  color: var(--on-primary);
   background: var(--primary);
   border-radius: 50%;
 }
@@ -808,7 +845,7 @@ button.todo-title {
 
 .mini-cal-day:hover { background: var(--primary-soft); }
 .mini-cal-day.today { font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--primary); }
-.mini-cal-day.current { font-weight: 700; color: #fff; background: var(--primary); }
+.mini-cal-day.current { font-weight: 700; color: var(--on-primary); background: var(--primary); }
 
 .sheet-action-hint {
   font-size: 13px;
@@ -817,7 +854,7 @@ button.todo-title {
 }
 
 .sheet-action.danger { color: var(--danger); }
-.sheet-action.danger:hover { background: #fbeeed; }
+.sheet-action.danger:hover { background: var(--danger-soft); }
 
 .date-form { display: grid; gap: 16px; padding: 4px 4px 2px; }
 
@@ -856,7 +893,7 @@ button.todo-title {
   padding: 10px 18px;
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--on-primary);
   background: var(--primary);
   border: none;
   border-radius: 999px;
@@ -904,8 +941,8 @@ button.todo-title {
 }
 
 .cat-chip.on {
-  color: color-mix(in srgb, var(--cat) 70%, #1f2a37);
-  background: color-mix(in srgb, var(--cat) 14%, #fff);
+  color: color-mix(in srgb, var(--cat) 70%, var(--text));
+  background: color-mix(in srgb, var(--cat) 14%, var(--surface));
   border-color: var(--cat);
 }
 
@@ -948,7 +985,7 @@ button.todo-title {
   cursor: pointer;
 }
 
-.day-chip.on { font-weight: 700; color: #fff; background: var(--primary); }
+.day-chip.on { font-weight: 700; color: var(--on-primary); background: var(--primary); }
 
 /* 요일 7개는 화면이 좁아도 항상 한 줄 */
 .weekdays {
@@ -1151,7 +1188,7 @@ body.viewing-friend .check { cursor: default; }
   padding: 0 5px;
   font-size: 11px;
   line-height: 17px;
-  color: #fff;
+  color: var(--on-primary);
   background: var(--danger);
   border-radius: 999px;
 }
@@ -1195,12 +1232,12 @@ body.viewing-friend .check { cursor: default; }
   padding: 1px 8px;
   font-size: 12px;
   color: var(--text-muted);
-  background: rgba(59, 110, 168, 0.07);
+  background: var(--hover);
   border: 1px solid transparent;
   border-radius: 999px;
 }
 
-.react-pill.mine { color: var(--primary); border-color: rgba(59, 110, 168, 0.35); background: var(--primary-soft); }
+.react-pill.mine { color: var(--primary); border-color: color-mix(in srgb, var(--primary) 35%, transparent); background: var(--primary-soft); }
 
 .react-pill.big {
   padding: 6px 12px;
@@ -1374,9 +1411,9 @@ body[data-screen="app"][data-tab="timer"] #view-timer { display: block; }
 }
 
 .planner-date { border-radius: 999px; padding: 6px 14px; }
-.planner-date:hover { background: rgba(59, 110, 168, 0.08); }
-.planner-date.is-today { background: rgba(91, 141, 239, 0.16); }
-.planner-date.is-today:hover { background: rgba(91, 141, 239, 0.24); }
+.planner-date:hover { background: var(--hover-strong); }
+.planner-date.is-today { background: color-mix(in srgb, var(--primary) 16%, transparent); }
+.planner-date.is-today:hover { background: color-mix(in srgb, var(--primary) 24%, transparent); }
 .planner-tpl { margin-left: auto; padding: 6px 14px; }
 .planner-cal { margin-bottom: 16px; }
 .planner-cal[hidden] { display: none; }
@@ -1398,7 +1435,7 @@ body[data-screen="app"][data-tab="timer"] #view-timer { display: block; }
 .blk.rest {
   background: transparent;
   box-shadow: none;
-  border-left-color: #d3dbe6;
+  border-left-color: var(--border-strong);
   padding-top: 8px;
   padding-bottom: 8px;
 }
@@ -1407,7 +1444,7 @@ body[data-screen="app"][data-tab="timer"] #view-timer { display: block; }
 
 .blk-time { display: flex; flex-direction: column; }
 .blk-start { font-size: 16px; font-weight: 700; }
-.blk-end { font-size: 14px; font-weight: 600; color: #4a5a70; }
+.blk-end { font-size: 14px; font-weight: 600; color: var(--text-2); }
 .blk-dur { margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--cat, var(--text-muted)); }
 .blk.rest .blk-dur { color: var(--text-muted); }
 
@@ -1635,7 +1672,7 @@ body[data-screen="login"] .login-screen {
   width: 100%;
   padding: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--on-primary);
   background: var(--primary);
   border: none;
   border-radius: 12px;
@@ -1644,7 +1681,7 @@ body[data-screen="login"] .login-screen {
 }
 
 .login-button:hover { background: var(--primary-hover); }
-.login-button:disabled { background: #b7c5d6; cursor: default; }
+.login-button:disabled { background: var(--border-strong); cursor: default; }
 
 .login-error {
   min-height: 1.5em;
@@ -1663,7 +1700,7 @@ body[data-screen="login"] .login-screen {
 
 .install-button {
   color: var(--primary);
-  border-color: #c8d6e8;
+  border-color: var(--border-strong);
 }
 
 /* 아래에서 잠깐 나타나는 알림 */
@@ -1675,8 +1712,8 @@ body[data-screen="login"] .login-screen {
   max-width: calc(100% - 32px);
   padding: 12px 18px;
   font-size: 14px;
-  color: #fff;
-  background: #2b3a4d;
+  color: var(--on-primary);
+  background: var(--toast-bg);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(31, 42, 55, 0.2);
   opacity: 0;
@@ -1733,7 +1770,7 @@ body[data-screen="login"] .login-screen {
 .menu-button:hover,
 .menu-button[aria-expanded="true"] {
   color: var(--primary);
-  border-color: #c8d6e8;
+  border-color: var(--border-strong);
   background: var(--surface);
 }
 
@@ -1812,7 +1849,7 @@ body[data-screen="login"] .login-screen {
   place-items: center;
   width: 22px;
   height: 22px;
-  border: 2px solid #c3cfdd;
+  border: 2px solid var(--box-empty);
   border-radius: 7px;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -1895,7 +1932,7 @@ body[data-screen="login"] .login-screen {
 
 .select-action:hover { background: var(--primary-soft); }
 .select-action.danger { color: var(--danger); }
-.select-action.danger:hover { background: #fbeeed; }
+.select-action.danger:hover { background: var(--danger-soft); }
 
 /* ===== 하단 메뉴바 ===== */
 .tabbar {
@@ -1908,7 +1945,7 @@ body[data-screen="login"] .login-screen {
   justify-content: center;
   gap: 8px;
   padding: 6px 16px calc(6px + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--tab-bg);
   border-top: 1px solid var(--border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1926,7 +1963,7 @@ body.selecting .tabbar { display: none; }
   padding: 6px 0 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #9aa7b8;
+  color: var(--tab-inactive);
   background: transparent;
   border: none;
   border-radius: 12px;
@@ -2023,7 +2060,7 @@ body[data-screen="app"][data-tab="me"] #view-me { display: block; }
 }
 
 .profile-photo.profile-photo-big { width: 96px; height: 96px; font-size: 36px; }
-.chip-button.on { color: #fff; background: var(--primary); }
+.chip-button.on { color: var(--on-primary); background: var(--primary); }
 .char-count { font-weight: 400; margin-left: 4px; }
 
 .profile-name {
@@ -2069,7 +2106,7 @@ body[data-screen="app"][data-tab="me"] #view-me { display: block; }
 .settings-item:hover { background: var(--bg); }
 .settings-item.danger { color: var(--danger); }
 
-.soon-badge.on { color: #fff; background: var(--primary); }
+.soon-badge.on { color: var(--on-primary); background: var(--primary); }
 
 .soon-badge {
   padding: 3px 8px;
@@ -2175,13 +2212,13 @@ body { font-size: 15.5px; }
 .cat-dot { width: 9px; height: 9px; }
 
 /* 배경과 비슷한 연한 색(연파랑·민트·연두·살구·노랑): 이름표 바탕만 조금 더 진하게 */
-.cat-section.soft-color { --cat-soft: color-mix(in srgb, var(--cat) 32%, #fff); }
+.cat-section.soft-color { --cat-soft: color-mix(in srgb, var(--cat) 32%, var(--surface)); }
 
 .cat-plus {
   width: 28px;
   height: 28px;
   margin-left: 4px;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 1px 3px rgba(31, 42, 55, 0.08);
 }
 
@@ -2248,7 +2285,7 @@ body { font-size: 15.5px; }
     width: 40px;
     height: 5px;
     margin: 0 auto 10px;
-    background: #d3dbe6;
+    background: var(--border-strong);
     border-radius: 999px;
     touch-action: none;
   }
@@ -2297,11 +2334,12 @@ body { font-size: 15.5px; }
   .more:hover { background: transparent; }
 
   .text-button:hover { background: transparent; color: var(--text-muted); border-color: var(--border); }
-  .menu-button:not([aria-expanded="true"]):hover { background: transparent; color: var(--text-muted); border-color: var(--border); }
+  .menu-button:not([aria-expanded="true"]):hover { background: var(--btn-bg); color: var(--btn-color); border-color: var(--btn-border); }
   .planner-date:not(.is-today):hover { background: transparent; }
-  .planner-date.is-today:hover { background: rgba(91, 141, 239, 0.16); }
+  .planner-date.is-today:hover { background: color-mix(in srgb, var(--primary) 16%, transparent); }
   .sheet-tile:hover, .select-action:hover { background: var(--bg); }
-  .cal-today:hover, .cat-add:hover, .postpone-button:hover { background: var(--primary-soft); }
+  .cal-today:hover { background: var(--today-pill-bg); }
+  .cat-add:hover, .postpone-button:hover { background: var(--primary-soft); }
   button.cat-head:hover { filter: none; }
   .primary-button:hover, .add-button:hover, .login-button:hover { background: var(--primary); }
   .timer-main:hover { background: var(--timer-color); }
@@ -2309,4 +2347,201 @@ body { font-size: 15.5px; }
   /* 대신 누르는 순간에만 살짝 눌린 느낌 */
   button:active { opacity: 0.7; }
   .todo-item.dragging, .todo-item.dragging * { opacity: 1; }
+}
+
+/* =====================================================================
+   테마 연결: 화면 곳곳이 테마 설정값을 따라가게
+   ===================================================================== */
+body {
+  background-color: var(--bg);
+  background-image: var(--bg-image);
+  background-attachment: fixed;
+}
+.calendar { border-radius: var(--card-radius); }
+.cal-day.selected .cal-num { color: var(--sel-fg); background: var(--sel-bg); }
+.cal-today { color: var(--today-pill-fg); background: var(--today-pill-bg); }
+.progress-bar { background: var(--prog-track); }
+.progress-fill { background: var(--prog-fill); }
+.menu-button { color: var(--btn-color); background: var(--btn-bg); border-color: var(--btn-border); }
+.tabbar { border-top-color: var(--tab-border); }
+.tab[aria-current="page"] { color: var(--tab-active); background: var(--tab-active-bg); }
+.check { border-radius: var(--box-radius); color: var(--cat-on, #fff); }
+.todo-item.done .check { background: var(--cat-box, var(--cat)); border-color: var(--cat-box, var(--cat)); }
+
+/* 클로버가 아닌 테마의 달력 마크 (원·둥근 네모 등): 빈 날 / 진행 중(남은 개수) / 다 끝냄(✓) */
+.mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 2px 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: var(--mark-radius);
+  background: var(--mark-empty);
+  transition: background 0.3s, color 0.3s;
+}
+.mark.part { background: var(--mark-part); color: var(--mark-part-fg); }
+.mark.full { background: var(--mark-full); color: var(--mark-full-fg); }
+.mark svg { width: 13px; height: 13px; }
+
+/* ----- 테마 고르기 창 ----- */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.theme-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+}
+.theme-card.on { border-color: var(--primary); }
+.theme-card:disabled { opacity: 0.55; cursor: default; }
+.theme-preview {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 54px;
+  padding: 8px;
+  border-radius: 11px;
+}
+.theme-preview span { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.theme-name { font-size: 14px; font-weight: 700; }
+.theme-sub { font-size: 12px; color: var(--text-muted); }
+
+/* =====================================================================
+   🌙 다크 · 부드러운 밤
+   ===================================================================== */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1d1e22;
+  --bg-image: radial-gradient(120% 40% at 50% 0%, rgba(143, 178, 236, 0.13), transparent 70%);
+  --surface: #26272c;
+  --text: #e9e7e2;
+  --text-2: #c9c7c2;
+  --text-muted: #9a9aa0;
+  --text-faint: #6e6f76;
+  --border: #2e2f35;
+  --border-strong: #3b3c43;
+  --primary: #8fb2ec;
+  --on-primary: #1d1e22;
+  --primary-soft: #2f3a4f;
+  --primary-soft-hover: #364560;
+  --primary-hover: #a9c2f0;
+  --danger: #e0928a;
+  --danger-soft: #3a2a2a;
+  --sunday: #e0928a;
+  --saturday: #8fb2ec;
+  --hover: rgba(255, 255, 255, 0.04);
+  --hover-strong: rgba(255, 255, 255, 0.07);
+  --overlay: rgba(0, 0, 0, 0.55);
+  --toast-bg: #3a3b42;
+  --box-empty: #4a4b52;
+  --sel-bg: #e9e7e2;
+  --sel-fg: #1d1e22;
+  --today-pill-bg: #2f3a4f;
+  --today-pill-fg: #a9c2f0;
+  --prog-track: #2f3036;
+  --prog-fill: #8fb2ec;
+  --btn-bg: #26272c;
+  --btn-border: #303137;
+  --btn-color: #c9c7c2;
+  --tab-bg: rgba(35, 36, 40, 0.96);
+  --tab-border: #2e2f35;
+  --tab-active: #e9e7e2;
+  --tab-inactive: #6e6f76;
+  --shadow: none;
+  --mark-radius: 11px;
+  --mark-empty: #303137;
+  --mark-part: #3a4760;
+  --mark-part-fg: #b3c8f0;
+  --mark-full: #8fb2ec;
+  --mark-full-fg: #1d1e22;
+}
+[data-theme="dark"] .calendar,
+[data-theme="dark"] .settings-list,
+[data-theme="dark"] .profile-card,
+[data-theme="dark"] .study-card,
+[data-theme="dark"] .blk:not(.rest) { border: 1px solid var(--border); }
+[data-theme="dark"] .cal-num { color: #d6d4cf; }
+/* 카테고리: 색 14% 투명 바탕 + 채도 낮춘 파스텔 글자, 체크 표시는 진하게 */
+[data-theme="dark"] .cat-section,
+[data-theme="dark"] .cat-section.soft-color {
+  --cat-soft: color-mix(in srgb, var(--cat) 15%, transparent);
+  --cat-ink: color-mix(in srgb, var(--cat) 62%, #ffffff);
+  --cat-on: #1d1e22;
+}
+[data-theme="dark"] .cat-plus { background: rgba(255, 255, 255, 0.08); box-shadow: none; }
+
+/* =====================================================================
+   🍵 말차코어
+   ===================================================================== */
+:root[data-theme="matcha"] {
+  --bg: #f5f2e8;
+  --surface: #fffdf7;
+  --text: #1d2e1b;
+  --text-2: #3d4a32;
+  --text-muted: #6b7560;
+  --text-faint: #a3a894;
+  --border: #e7e4d8;
+  --border-strong: #dcdcc8;
+  --primary: #1d2e1b;
+  --on-primary: #c9e05a;
+  --primary-soft: #dfe5cc;
+  --primary-soft-hover: #d3dbbb;
+  --primary-hover: #33472f;
+  --danger: #b5654f;
+  --danger-soft: #f6e6df;
+  --sunday: #c07a6a;
+  --saturday: #6f8a4a;
+  --hover: rgba(29, 46, 27, 0.04);
+  --hover-strong: rgba(29, 46, 27, 0.07);
+  --overlay: rgba(29, 46, 27, 0.35);
+  --toast-bg: #1d2e1b;
+  --box-empty: #cfd5bf;
+  --box-radius: 8px;
+  --sel-bg: #1d2e1b;
+  --sel-fg: #c9e05a;
+  --today-pill-bg: #a9c632;
+  --today-pill-fg: #1d2e1b;
+  --prog-track: #e7ead9;
+  --prog-fill: #9caf88;
+  --btn-bg: #fffdf7;
+  --btn-border: #dcdcc8;
+  --btn-color: #3d4a32;
+  --tab-bg: rgba(255, 253, 247, 0.95);
+  --tab-border: #e7e4d8;
+  --tab-active: #1d2e1b;
+  --tab-active-bg: #dfe5cc;
+  --tab-inactive: #a3a894;
+  --shadow: 0 1px 2px rgba(29, 46, 27, 0.05), 0 14px 28px -20px rgba(29, 46, 27, 0.35);
+  --mark-radius: 50%;
+  --mark-empty: #eceee2;
+  --mark-part: #c8d2a6;
+  --mark-part-fg: #1d2e1b;
+  --mark-full: #1d2e1b;
+  --mark-full-fg: #c9e05a;
+}
+[data-theme="matcha"] .progress-bar { height: 10px; }
+[data-theme="matcha"] .profile-photo.home-photo { box-shadow: 0 0 0 3px #a9c632; }
+/* 달력 카드 왼쪽 위 연두색 마스킹테이프 한 장 */
+[data-theme="matcha"] .calendar { position: relative; }
+[data-theme="matcha"] .calendar::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 30px;
+  width: 80px;
+  height: 20px;
+  background: repeating-linear-gradient(90deg, rgba(201, 224, 90, 0.75) 0 6px, rgba(201, 224, 90, 0.55) 6px 9px);
+  transform: rotate(-5deg);
+  pointer-events: none;
 }

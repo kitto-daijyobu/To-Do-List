@@ -1,7 +1,7 @@
 // ===== 오프라인 도우미 (서비스 워커) =====
 // 앱 파일을 기기에 저장해 두고, 인터넷이 끊겨도 앱이 열리게 해요.
 // 할 일 데이터는 Firebase가 따로 기기에 저장해 줘요.
-const CACHE = 'mytodo-v3';
+const CACHE = 'mytodo-v4';
 
 const APP_FILES = [
   './',
@@ -11,6 +11,7 @@ const APP_FILES = [
   './cloud.js',
   './firebase-config.js',
   './push-config.js',
+  './themes.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

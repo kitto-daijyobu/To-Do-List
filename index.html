@@ -16,6 +16,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <link rel="stylesheet" href="style.css">
+  <script>
+    // 고른 테마를 화면이 그려지기 전에 먼저 입혀요 (깜빡임 방지)
+    try { document.documentElement.dataset.theme = localStorage.getItem('mytodo.theme') || 'base'; } catch (e) { document.documentElement.dataset.theme = 'base'; }
+  </script>
 </head>
 <body data-screen="loading" data-tab="home">
   <div class="loading-screen" aria-live="polite">
@@ -191,7 +195,7 @@
       <ul class="settings-list">
         <li><button id="open-profile" class="settings-item" type="button">프로필 설정</button></li>
         <li><button id="push-toggle" class="settings-item" type="button">알림 받기<span id="push-state" class="soon-badge">꺼짐</span></button></li>        <li><button id="open-friends" class="settings-item" type="button">친구<span id="friends-badge" class="soon-badge on" hidden></span></button></li>
-        <li><button class="settings-item" type="button" data-soon="테마 설정">테마 설정<span class="soon-badge">준비 중</span></button></li>
+        <li><button id="open-theme" class="settings-item" type="button">테마 설정<span id="theme-name" class="soon-badge"></span></button></li>
       </ul>
 
       <ul class="settings-list">
@@ -272,6 +276,15 @@
       <button id="block-close" class="icon-button" type="button" aria-label="닫기">×</button>
     </div>
     <div id="block-body"></div>
+  </dialog>
+
+  <!-- 테마 고르기 -->
+  <dialog id="theme-dialog" class="sheet routine-sheet" aria-labelledby="theme-title">
+    <div class="sheet-head">
+      <h2 id="theme-title">테마 설정</h2>
+      <button id="theme-close" class="icon-button" type="button" aria-label="닫기">×</button>
+    </div>
+    <div id="theme-grid" class="theme-grid"></div>
   </dialog>
 
   <!-- 친구 (개인정보 → 친구) -->

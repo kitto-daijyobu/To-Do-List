@@ -10,6 +10,11 @@ import {
   social,
 } from './cloud.js';
 import { PUSH } from './push-config.js';
+import { THEMES, findTheme } from './themes.js';
+
+// 지금 테마 (index.html 맨 위에서 먼저 입혀 둔 값)
+let theme = findTheme(document.documentElement.dataset.theme);
+document.documentElement.dataset.theme = theme.id;
 
 // ===== 부드러운 창(시트) =====
 // 폰: 아래에서 스르륵 올라오고, 손잡이를 아래로 쓸거나 바깥을 누르면 스르륵 내려가요
@@ -269,7 +274,7 @@ const $selectCount = document.getElementById('select-count');
 const $postpone = document.getElementById('postpone-undone');
 
 const CHECK_PATH = 'M3.5 8.5l3 3 6-7';
-const CHECK_ICON = `<svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${CHECK_PATH}"/></svg>`;
+const CHECK_ICON = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${CHECK_PATH}"/></svg>`;
 const PLUS_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 const MORE_ICON = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="12.5" cy="8" r="1.4"/></svg>';
 const GRIP_ICON = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.2"/><circle cx="10" cy="4" r="1.2"/><circle cx="6" cy="8" r="1.2"/><circle cx="10" cy="8" r="1.2"/><circle cx="6" cy="12" r="1.2"/><circle cx="10" cy="12" r="1.2"/></svg>';
@@ -292,9 +297,37 @@ function isShared(todo) {
   return !todo.hideFromFriends && !categoryHidden(todo.categoryId);
 }
 
+// 테마 전용 색 목록이 있는 테마(말차 등)에서 이 카테고리의 색 묶음 { dot, bg, fg, box, on }
+// 테마에서 따로 고른 색이 없으면 카테고리 순서대로 자동으로 입혀요
+function themeEntry(cat) {
+  if (!theme.palette || !cat) return null;
+  const chosen = cat.themeColors?.[theme.id];
+  const picked = theme.palette.find((p) => p.dot === chosen);
+  if (picked) return picked;
+  const index = Math.max(0, categories.indexOf(cat));
+  return theme.palette[index % theme.palette.length];
+}
+
 function categoryColor(id) {
   const cat = findCategory(id);
+  const entry = themeEntry(cat);
+  if (entry) return entry.dot;
   return safeColor(cat ? cat.color : UNCATEGORIZED_COLOR);
+}
+
+// 카테고리 색을 화면 요소에 입히기 (이름표 바탕·글자, 체크칸 색까지)
+function paintCategory(element, cat) {
+  const entry = themeEntry(cat);
+  const color = entry ? entry.dot : safeColor(cat?.color || UNCATEGORIZED_COLOR);
+  element.style.setProperty('--cat', color);
+  if (entry) {
+    element.style.setProperty('--cat-soft', entry.bg);
+    element.style.setProperty('--cat-ink', entry.fg);
+    element.style.setProperty('--cat-box', entry.box || entry.dot);
+    element.style.setProperty('--cat-on', entry.on || '#fff');
+  } else if (blendsWithBackground(color)) {
+    element.classList.add('soft-color');
+  }
 }
 
 // ===== 저장 =====
@@ -706,12 +739,19 @@ function setCategoryHidden(id, hidden) {
   renderCategoryList();
 }
 
+// 색 바꾸기: 전용 색 목록이 있는 테마에서는 그 테마 색으로만 따로 기억해요
+// (그래서 기본 테마로 돌아오면 원래 고른 색이 그대로 나와요)
 function recolorCategory(id, color) {
   const cat = findCategory(id);
   if (!cat) return;
-  cat.color = color;
   pickingColorFor = null;
-  save(remote.updateCategory(id, { color }));
+  if (theme.palette) {
+    cat.themeColors = { ...(cat.themeColors || {}), [theme.id]: color };
+    save(remote.updateCategory(id, { themeColors: cat.themeColors }));
+  } else {
+    cat.color = color;
+    save(remote.updateCategory(id, { color }));
+  }
   commitCategories();
 }
 
@@ -818,18 +858,24 @@ function renderCalendar() {
     if (key === todayKey) cell.classList.add('today');
     if (key === selectedKey) cell.classList.add('selected');
 
-    // 클로버는 모든 날에 나와요. 할 일이 없는 날은 빈 회색 클로버
+    // 달력 마크는 모든 날에 나와요
+    const checkSvg = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${CHECK_PATH}"/></svg>`;
     const clover = document.createElement('span');
-    clover.className = 'clover';
-    const leafColors = total ? cloverLeafColors(dayTodos) : null;
-    if (!leafColors) clover.classList.add('empty');
-    let inner = '';
-    if (total && done === total) {
-      inner = `<svg class="clover-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${CHECK_PATH}"/></svg>`;
-    } else if (total) {
-      inner = `<span class="clover-count">${total - done}</span>`;
+    if (theme.mark === 'clover') {
+      // 기본: 끝낸 카테고리 색으로 잎이 물드는 클로버, 할 일이 없는 날은 빈 회색 클로버
+      clover.className = 'clover';
+      const leafColors = total ? cloverLeafColors(dayTodos) : null;
+      if (!leafColors) clover.classList.add('empty');
+      let inner = '';
+      if (total && done === total) inner = checkSvg.replace('<svg', '<svg class="clover-check"');
+      else if (total) inner = `<span class="clover-count">${total - done}</span>`;
+      clover.innerHTML = cloverSvg(leafColors) + inner;
+    } else {
+      // 다른 테마: 빈 날 / 진행 중(남은 개수) / 다 끝냄(✓)
+      clover.className = 'mark' + (total && done === total ? ' full' : total ? ' part' : '');
+      if (total && done === total) clover.innerHTML = checkSvg;
+      else if (total) clover.textContent = total - done;
     }
-    clover.innerHTML = cloverSvg(leafColors) + inner;
 
     const num = document.createElement('span');
     num.className = 'cal-num';
@@ -897,8 +943,7 @@ function renderProgress() {
 function renderSection(cat, items, canAdd) {
   const section = document.createElement('section');
   section.className = 'cat-section';
-  section.style.setProperty('--cat', safeColor(cat.color));
-  if (blendsWithBackground(safeColor(cat.color))) section.classList.add('soft-color');
+  paintCategory(section, cat.id ? findCategory(cat.id) : null);
   if (cat.id) section.dataset.catId = cat.id; // 끌어서 옮길 때 어느 카테고리인지 알려고
 
   const head = document.createElement(canAdd ? 'button' : 'div');
@@ -1635,7 +1680,7 @@ function renderRoutineForm() {
     const chip = el('button', { type: 'button', className: 'cat-chip' + (c.id === d.categoryId ? ' on' : '') }, [
       el('span', { className: 'cat-dot' }), c.name,
     ]);
-    chip.style.setProperty('--cat', safeColor(c.color));
+    chip.style.setProperty('--cat', categoryColor(c.id));
     chip.addEventListener('click', () => { d.categoryId = c.id; renderRoutineForm(); });
     return chip;
   }));
@@ -1874,7 +1919,7 @@ function renderPlanner() {
 function renderBlock(b, isNow) {
   const cat = b.categoryId && findCategory(b.categoryId);
   const card = el('div', { className: 'blk' + (cat ? '' : ' rest') + (isNow ? ' now' : '') });
-  if (cat) card.style.setProperty('--cat', safeColor(cat.color));
+  if (cat) card.style.setProperty('--cat', categoryColor(cat.id));
 
   const time = el('div', { className: 'blk-time' }, [
     el('span', { className: 'blk-start', textContent: showTime(b.start) }),
@@ -1992,7 +2037,7 @@ function renderBlockForm() {
   const cats = el('div', { className: 'chip-row' }, [
     ...categories.map((c) => {
       const chip = el('button', { type: 'button', className: 'cat-chip' + (c.id === d.categoryId ? ' on' : '') }, [el('span', { className: 'cat-dot' }), c.name]);
-      chip.style.setProperty('--cat', safeColor(c.color));
+      chip.style.setProperty('--cat', categoryColor(c.id));
       chip.addEventListener('click', () => { d.categoryId = c.id; renderBlockForm(); });
       return chip;
     }),
@@ -2487,7 +2532,7 @@ function renderTimer() {
   };
   const chips = mine.map((c) => {
     const chip = el('button', { type: 'button', className: 'cat-chip' + (timer.categoryId === c.id ? ' on' : '') }, [el('span', { className: 'cat-dot' }), c.name]);
-    chip.style.setProperty('--cat', safeColor(c.color));
+    chip.style.setProperty('--cat', categoryColor(c.id));
     chip.addEventListener('click', () => pick(c.id));
     return chip;
   });
@@ -2571,7 +2616,7 @@ function renderStudy() {
       el('span', { className: 'study-bar' }, [el('span', { className: 'study-fill' })]),
       el('span', { className: 'study-sec', textContent: durationWords(sec) }),
     ]);
-    row.style.setProperty('--cat', cat ? safeColor(cat.color) : UNCATEGORIZED_COLOR);
+    row.style.setProperty('--cat', cat ? categoryColor(cat.id) : UNCATEGORIZED_COLOR);
     row.querySelector('.study-fill').style.width = `${(sec / max) * 100}%`;
     return row;
   }));
@@ -2683,7 +2728,7 @@ function renderCategoryList() {
     const li = document.createElement('li');
     li.className = 'cat-row';
     li.dataset.id = cat.id;
-    li.style.setProperty('--cat', safeColor(cat.color));
+    li.style.setProperty('--cat', categoryColor(cat.id));
 
     const line = document.createElement('div');
     line.className = 'cat-row-line';
@@ -2747,12 +2792,16 @@ function renderCategoryList() {
     if (pickingColorFor === cat.id) {
       const palette = document.createElement('div');
       palette.className = 'palette';
-      for (const color of PALETTE) {
+      // 테마 전용 색 목록이 있으면 그것만 (말차 = 연두 계열 등)
+      const choices = theme.palette ? theme.palette.map((p) => ({ color: p.dot, name: p.name })) : PALETTE.map((color) => ({ color, name: '' }));
+      const current = categoryColor(cat.id);
+      for (const { color, name: colorName } of choices) {
         const chip = document.createElement('button');
         chip.type = 'button';
-        chip.className = 'palette-chip' + (color === cat.color ? ' current' : '');
+        chip.className = 'palette-chip' + (color === current ? ' current' : '');
         chip.style.background = color;
-        chip.setAttribute('aria-label', '이 색으로');
+        chip.setAttribute('aria-label', colorName ? `${colorName}으로` : '이 색으로');
+        if (colorName) chip.title = colorName;
         chip.addEventListener('click', () => recolorCategory(cat.id, color));
         palette.append(chip);
       }
@@ -3781,6 +3830,56 @@ for (const dialog of [$noticeDialog, $reactDialog]) {
   });
 }
 
+// ===== 🎨 테마 =====
+const $themeDialog = document.getElementById('theme-dialog');
+
+// 테마 바꾸기: 화면 색을 바꾸고, 이 기기와 내 계정(다른 기기)에 기억해요
+function applyTheme(id, { remember = true } = {}) {
+  theme = findTheme(id);
+  document.documentElement.dataset.theme = theme.id;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.statusColor);
+  try { localStorage.setItem('mytodo.theme', theme.id); } catch { /* 괜찮아요 */ }
+  document.getElementById('theme-name').textContent = theme.name.split(' · ')[0];
+  if (remember && currentUser && profile?.theme !== theme.id) {
+    profile = { ...(profile || {}), theme: theme.id };
+    save(remote.saveProfile(profile));
+  }
+  if (currentUser) {
+    render();
+    if ($catDialog.open) renderCategoryList();
+    if ($themeDialog.open) renderThemes();
+  }
+}
+
+function renderThemes() {
+  document.getElementById('theme-grid').replaceChildren(...THEMES.map((t) => {
+    const preview = el('div', { className: 'theme-preview' }, t.swatches.slice(1).map((c) => {
+      const dot = el('span');
+      dot.style.background = c;
+      return dot;
+    }));
+    preview.style.background = t.swatches[0];
+    const card = el('button', { type: 'button', className: 'theme-card' + (t.id === theme.id ? ' on' : ''), disabled: !t.ready }, [
+      preview,
+      el('span', { className: 'theme-name', textContent: t.name }),
+      el('span', { className: 'theme-sub', textContent: t.ready ? t.sub : '곧 나와요' }),
+    ]);
+    card.setAttribute('aria-pressed', String(t.id === theme.id));
+    card.addEventListener('click', () => applyTheme(t.id));
+    return card;
+  }));
+}
+
+document.getElementById('open-theme').addEventListener('click', () => {
+  renderThemes();
+  $themeDialog.showModal();
+});
+document.getElementById('theme-close').addEventListener('click', () => $themeDialog.close());
+$themeDialog.addEventListener('click', (e) => {
+  if (e.target === $themeDialog) $themeDialog.close();
+});
+document.getElementById('theme-name').textContent = theme.name.split(' · ')[0];
+
 document.getElementById('open-profile').addEventListener('click', openProfileForm);
 document.getElementById('profile-close').addEventListener('click', () => $profileDialog.close());
 $profileDialog.addEventListener('click', (e) => {
@@ -3923,6 +4022,8 @@ if (!isConfigured) {
       },
       onProfile: (data) => {
         profile = data;
+        // 다른 기기에서 고른 테마를 따라가요
+        if (profile?.theme && profile.theme !== theme.id) applyTheme(profile.theme, { remember: false });
         renderProfile();
         publishProfile();
         startSocial(); // 프로필을 받은 뒤에 시작해요 (친구 코드가 겹쳐 만들어지지 않게)
