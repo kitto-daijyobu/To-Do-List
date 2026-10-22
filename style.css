@@ -3561,3 +3561,7 @@ body.no-progress .progress { display: none; }
 [data-theme="cereal"] .day-header .progress { margin-top: 0; min-height: 32px; padding-right: 84px; }
 body.no-progress[data-screen] [data-theme] .day-header { }html[data-theme="base"] body.no-progress .day-header,
 html[data-theme="cereal"] body.no-progress .day-header { min-height: 0; height: 0; margin-bottom: 0; }
+
+/* 기본 테마 클로버 체크 칸: 글씨보다 아주 조금 크게 (21px) */
+[data-theme="base"] .check { width: 21px; height: 21px; clip-path: path('M1.3125 6.825a5.5125 5.5125 0 1 0 11.025 0a5.5125 5.5125 0 1 0 -11.025 0ZM8.6625 6.825a5.5125 5.5125 0 1 0 11.025 0a5.5125 5.5125 0 1 0 -11.025 0ZM8.6625 14.175a5.5125 5.5125 0 1 0 11.025 0a5.5125 5.5125 0 1 0 -11.025 0ZM1.3125 14.175a5.5125 5.5125 0 1 0 11.025 0a5.5125 5.5125 0 1 0 -11.025 0Z'); }
+[data-theme="base"] .check svg { width: 11px; height: 11px; }
