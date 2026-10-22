@@ -4023,6 +4023,9 @@ function applyTheme(id, { remember = true } = {}) {
   theme = resolveTheme(themeChoice);
   document.documentElement.dataset.theme = theme.id;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.statusColor);
+  // 상태 표시줄 모양 (아이폰 홈 화면 앱은 다음에 열 때부터 적용돼요)
+  document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+    ?.setAttribute('content', ['cereal', 'iphone', 'dark', 'space'].includes(theme.id) ? 'black-translucent' : 'default');
   try { localStorage.setItem('mytodo.theme', themeChoice); } catch { /* 괜찮아요 */ }
   document.getElementById('theme-name').textContent = findTheme(themeChoice).name;
   loadThemeFonts();
@@ -4113,15 +4116,35 @@ $profileDialog.addEventListener('click', (e) => {
 
 // 글을 쓰는 동안(키보드가 올라온 동안)에는 하단바를 숨겨요
 // (폰에서 하단바가 키보드 위로 떠올라 입력칸을 가리는 걸 막아요)
+// 아이폰은 키보드를 내려도 입력칸에 포커스가 남거나(창이 닫힐 때 등) focusout이 안 오는 일이 있어서,
+// '입력칸에 포커스'만 보지 않고 '키보드가 실제로 화면을 가리고 있는지'도 같이 봐요.
 const isTypingField = (t) => t?.matches?.('input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), textarea, [contenteditable="true"]');
+const vv = window.visualViewport;
+// 갤럭시는 키보드가 올라오면 창 전체가 줄어서, 키보드 없을 때 가장 컸던 높이와 비교해요
+let fullH = vv ? vv.height : 0;
+const keyboardUp = () => {
+  if (!vv) return true;
+  if (!isTypingField(document.activeElement)) fullH = Math.max(vv.height, window.innerHeight);
+  fullH = Math.max(fullH, window.innerHeight);
+  return fullH - vv.height > 120;
+};
+window.addEventListener('orientationchange', () => { fullH = 0; });
+const syncTyping = () => {
+  const el = document.activeElement;
+  const on = isTypingField(el) && el.getClientRects().length > 0 && keyboardUp();
+  const was = document.body.classList.contains('typing');
+  document.body.classList.toggle('typing', on);
+  // 키보드가 내려간 뒤 아이폰이 화면을 밀어 올린 채로 두면 아래 고정 막대가 화면 밖에 남아요 → 제자리로
+  if (was && !on) requestAnimationFrame(() => window.scrollTo(window.scrollX, window.scrollY));
+};
 document.addEventListener('focusin', (e) => {
   if (isTypingField(e.target)) document.body.classList.add('typing');
+  setTimeout(syncTyping, 450); // 키보드가 다 올라온 뒤 한 번 더 확인
 });
-document.addEventListener('focusout', () => {
-  setTimeout(() => {
-    if (!isTypingField(document.activeElement)) document.body.classList.remove('typing');
-  }, 50);
-});
+document.addEventListener('focusout', () => setTimeout(syncTyping, 60));
+vv?.addEventListener('resize', syncTyping);
+document.addEventListener('close', () => setTimeout(syncTyping, 60), true); // 창(dialog)이 닫힐 때
+document.addEventListener('visibilitychange', syncTyping);
 
 // ===== 앱처럼 설치하기 =====
 // 오프라인 도우미를 등록해요 (인터넷이 끊겨도 앱이 열리게)
