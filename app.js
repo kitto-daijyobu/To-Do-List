@@ -892,26 +892,104 @@ function renderSpaceMoon() {
 }
 
 // ===== 🍥 위시코어: 나루토마끼 달력 마크 =====
-// 32각 톱니 원 + (다 끝낸 날) 분홍 소용돌이
-const NARUTO_EDGE = Array.from({ length: 64 }, (_, i) => {
-  const a = (Math.PI * 2 * i) / 64;
-  const r = i % 2 ? 13.6 : 15;
-  return `${(20 + r * Math.cos(a)).toFixed(2)},${(20 + r * Math.sin(a)).toFixed(2)}`;
+// (시안 그대로) 32각 톱니 테두리 + 안쪽 원 2겹, 다 끝낸 날은 분홍 소용돌이
+const scallop = (c, rOut, rIn) => Array.from({ length: 32 }, (_, i) => {
+  const a = (i / 32) * 2 * Math.PI;
+  const r = i % 2 ? rIn : rOut;
+  return `${(c + r * Math.cos(a)).toFixed(2)},${(c + r * Math.sin(a)).toFixed(2)}`;
 }).join(' ');
-const NARUTO_SWIRL = (() => {
-  const pts = [];
-  for (let t = 0; t <= Math.PI * 5; t += 0.25) {
-    const r = 0.6 + (8.4 * t) / (Math.PI * 5);
-    pts.push(`${(20 + r * Math.cos(t)).toFixed(2)},${(20 + r * Math.sin(t)).toFixed(2)}`);
+// 소용돌이 선 (시안의 spiral 함수와 같아요)
+function spiralPath(cx, cy, a, b, turns) {
+  let d = '';
+  for (let th = 0; th <= turns * 2 * Math.PI; th += 0.25) {
+    const r = a + b * th;
+    d += (d ? 'L' : 'M') + (cx + r * Math.cos(th)).toFixed(1) + ' ' + (cy + r * Math.sin(th)).toFixed(1);
   }
-  return pts.join(' ');
-})();
+  return d;
+}
+const NARUTO_RIM = scallop(15, 15, 13.2);
+const NARUTO_IN = scallop(15, 13, 11.44);
+const NARUTO_SWIRL = spiralPath(15, 15, 0.6, 0.82, 1.6);
 
 function narutoSvg(total, done) {
   const state = !total ? 'empty' : done === total ? 'full' : 'part';
-  const swirl = state === 'full' ? `<polyline points="${NARUTO_SWIRL}" class="naruto-swirl"/>` : '';
-  return `<svg viewBox="0 0 40 40" aria-hidden="true"><polygon points="${NARUTO_EDGE}" class="naruto-${state}"/>${swirl}</svg>`;
+  const swirl = state === 'full' ? `<path d="${NARUTO_SWIRL}" class="naruto-swirl"/>` : '';
+  return `<svg viewBox="0 0 30 30" aria-hidden="true"><polygon points="${NARUTO_RIM}" class="naruto-rim-${state}"/>` +
+    `<polygon points="${NARUTO_IN}" class="naruto-${state}"/>${swirl}</svg>`;
 }
+
+// ===== 🎀 위시코어 꾸밈 (처음 한 번만 만들어 두고, 위시코어일 때만 보여요) =====
+const STAR_PTS = '50,0 63,34 98,36 70,58 80,94 50,74 20,94 30,58 2,36 37,34';
+const WISH_ICONS = {
+  home: `<svg class="icon-wish" viewBox="0 0 40 32" aria-hidden="true"><g transform="translate(2 3)" fill="#e3f0fb" stroke="#5b9ae0" stroke-width="1.8" stroke-linejoin="round"><path d="M3 13l11-9 11 9v12H3z"/><path d="M11 25v-6h6v6" fill="#fff"/></g><path transform="translate(22 3)" d="M1.5 5C5 1.5 13 1.5 16.5 5.5c-1.6 0-2.6.8-2.6 2-1.5-.4-2.8.4-2.8 1.8-1.4-.4-2.6.4-2.6 1.7C4.5 11 1.6 8.6 1.5 5z" fill="#fff" stroke="#8ec1ec" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
+  planner: `<svg class="icon-wish" viewBox="0 0 32 32" aria-hidden="true"><path d="${spiralPath(16, 16, 1, 1.05, 1.9)}" fill="none" stroke="#9cc98a" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+  timer: `<svg class="icon-wish" viewBox="0 0 30 30" aria-hidden="true"><defs><filter id="wish-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.9"/></filter></defs><ellipse cx="15" cy="16" rx="13" ry="12" fill="#f37a6c" filter="url(#wish-soft)"/><polygon transform="translate(9 0) scale(.12)" points="${STAR_PTS}" fill="#6aa05a"/><path d="M11.5 18.2q3.5 3.2 7 0" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+  me: `<svg class="icon-wish" viewBox="0 0 38 32" aria-hidden="true"><g fill="none" stroke-linecap="round"><path d="M5 21v-5a11 11 0 0 1 22 0v5" stroke="#8ec1ec" stroke-width="2.4"/><rect x="3" y="18" width="6" height="11" rx="3" fill="#f6a9c3" stroke="#f28cb1" stroke-width="1.5"/><rect x="23" y="18" width="6" height="11" rx="3" fill="#f6a9c3" stroke="#f28cb1" stroke-width="1.5"/></g><text x="29" y="10" font-size="10" fill="#f28cb1">♪</text></svg>`,
+  bell: `<svg class="icon-wish" viewBox="0 0 28 28" aria-hidden="true"><g fill="#fff" stroke="#5b88b8" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="8" width="22" height="15" rx="3.5"/><path d="M4.5 10l9.5 7 9.5-7" fill="none"/></g><path d="M14 4.4c-1-1.6-3.6-.9-3.2 1 .3 1.3 3.2 3.1 3.2 3.1s2.9-1.8 3.2-3.1c.4-1.9-2.2-2.6-3.2-1z" fill="#f6a9c3" stroke="#f28cb1" stroke-width="1.2"/></svg>`,
+  friends: `<svg class="icon-wish" viewBox="0 0 30 28" aria-hidden="true"><g stroke="#5b88b8" stroke-width="1.8" stroke-linejoin="round"><path d="M13.5 17a6 5.2 0 0 0 12 0V9l-2.8 2.2a7 6 0 0 0-6.4 0L13.5 9z" fill="#e3f0fb"/><path d="M2.5 19a7 6 0 0 0 14 0V10l-3.2 2.6a8 7 0 0 0-7.6 0L2.5 10z" fill="#fff"/></g><circle cx="7" cy="18" r="1" fill="#5b88b8"/><circle cx="12" cy="18" r="1" fill="#5b88b8"/><circle cx="5.5" cy="20.5" r="1.2" fill="#f6a9c3"/><circle cx="13.5" cy="20.5" r="1.2" fill="#f6a9c3"/></svg>`,
+};
+
+// 배경 스티커: 나루토마끼 · 해파리 · 천사날개 · 딸기 · 토마토 · 클로버 · 음표 · 고양이 · 단추 · 별 · 이모티콘
+const sticker = (x, y, w, rot, svg, extra = '') =>
+  `<span class="wd ${extra}" style="left:${x};top:${y};width:${w}px;transform:rotate(${rot}deg)">${svg}</span>`;
+const WD = {
+  naruto: `<svg viewBox="0 0 30 30"><polygon points="${scallop(15, 15, 13.2)}" fill="#e6eef6"/><polygon points="${scallop(15, 13, 11.44)}" fill="#fff"/><path d="${spiralPath(15, 15, 0.6, 0.82, 1.6)}" fill="none" stroke="#f6a9c3" stroke-width="2" stroke-linecap="round"/></svg>`,
+  jelly: `<svg viewBox="0 0 40 46"><defs><radialGradient id="wd-jg" cx=".4" cy=".35"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#cfe6f8"/><stop offset="1" stop-color="#a9cdee"/></radialGradient></defs><path d="M2 18a18 16 0 0 1 36 0q0 3-4 3H6q-4 0-4-3z" fill="url(#wd-jg)"/><path d="M10 22c-3 6 3 9 0 15s3 6 0 8M20 22c-3 6 3 9 0 15s3 6 0 8M30 22c-3 6 3 9 0 15s3 6 0 8" fill="none" stroke="#b8d8f3" stroke-width="2" stroke-linecap="round"/></svg>`,
+  wing: `<svg viewBox="0 0 60 40"><path d="M4 8c10-8 30-6 38 4 6 0 10 4 10 9-4 0-6 2-6 5-4-1-8 1-8 4-4-1-8 1-9 4C16 34 2 24 4 8z" fill="#fff" stroke="#bcd8f1" stroke-width="2.4" stroke-linejoin="round"/><path d="M40 25c-4-1-6 2-4 4" fill="none" stroke="#bcd8f1" stroke-width="2" stroke-linecap="round"/></svg>`,
+  berry: `<svg viewBox="0 0 40 46"><path d="M20 12c10-4 18 2 17 11-1 10-9 19-17 21C12 42 4 33 3 23 2 14 10 8 20 12z" fill="#f7b6cc"/><g fill="#fff" opacity=".85"><circle cx="12" cy="22" r="1.1"/><circle cx="20" cy="20" r="1.1"/><circle cx="28" cy="22" r="1.1"/><circle cx="15" cy="29" r="1.1"/><circle cx="24" cy="29" r="1.1"/><circle cx="20" cy="36" r="1.1"/><circle cx="10" cy="30" r="1"/><circle cx="30" cy="30" r="1"/></g><path d="M20 13l-7-4 6 0-1-6 4 5 4-5-1 6 6 0z" fill="#9ed3bf"/></svg>`,
+  tomato: `<svg viewBox="0 0 30 30"><ellipse cx="15" cy="16" rx="13" ry="12" fill="#f58a7d"/><polygon transform="translate(9 0) scale(.12)" points="${STAR_PTS}" fill="#7bb26a"/></svg>`,
+  clover: `<svg viewBox="0 0 28 28"><g fill="#a8d48f"><circle cx="8.5" cy="8.5" r="8.2"/><circle cx="19.5" cy="8.5" r="8.2"/><circle cx="8.5" cy="19.5" r="8.2"/><circle cx="19.5" cy="19.5" r="8.2"/></g><path d="M14 9v10M9 14h10" stroke="#c9e6b5" stroke-width="1.2" stroke-linecap="round"/></svg>`,
+  star: (c) => `<svg viewBox="0 0 100 100"><polygon points="${STAR_PTS}" fill="${c}"/></svg>`,
+  swirl: (c) => `<svg viewBox="0 0 40 40"><path d="${spiralPath(20, 20, 1.5, 1.35, 2)}" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round"/></svg>`,
+  button: (c, d) => `<svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="13" fill="${c}"/><circle cx="15" cy="15" r="9.5" fill="none" stroke="${d}" stroke-width="1.2" stroke-dasharray="2 2"/><g fill="${d}"><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/><circle cx="12" cy="18" r="1.7"/><circle cx="18" cy="18" r="1.7"/></g></svg>`,
+  cat: `<svg viewBox="0 0 40 34"><path d="M6 30V8l7 6h14l7-6v22q0 2-2 2H8q-2 0-2-2z" fill="#fff" stroke="#9aa9bb" stroke-width="1.8" stroke-linejoin="round"/><circle cx="14" cy="20" r="1.6" fill="#6d7d96"/><circle cx="26" cy="20" r="1.6" fill="#6d7d96"/><circle cx="11" cy="24" r="1.8" fill="#f8c4d6"/><circle cx="29" cy="24" r="1.8" fill="#f8c4d6"/><path d="M18 23q2 2 4 0" fill="none" stroke="#6d7d96" stroke-width="1.3" stroke-linecap="round"/><ellipse cx="20" cy="4" rx="7" ry="2" fill="none" stroke="#a9cdee" stroke-width="1.6"/></svg>`,
+  note: (c) => `<svg viewBox="0 0 24 30"><path d="M9 24V5l12-3v18" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="6" cy="24" rx="4.5" ry="3.5" fill="${c}"/><ellipse cx="18" cy="21" rx="4.5" ry="3.5" fill="${c}"/></svg>`,
+};
+
+function setupWishDecor() {
+  const tabs = { home: 'home', planner: 'planner', timer: 'timer', me: 'me' };
+  for (const [tab, key] of Object.entries(tabs)) {
+    document.querySelector(`.tab[data-tab="${tab}"]`)?.insertAdjacentHTML('afterbegin', WISH_ICONS[key]);
+  }
+  document.getElementById('open-notices')?.insertAdjacentHTML('afterbegin', WISH_ICONS.bell);
+  document.getElementById('toggle-friends')?.insertAdjacentHTML('afterbegin', WISH_ICONS.friends);
+
+  // 프로필 사진: 헤일로 + 양쪽 날개 (깃털 3장씩)
+  document.getElementById('home-photo')?.insertAdjacentHTML('beforebegin',
+    '<span class="wish-angel" aria-hidden="true"><span class="wing l"><i></i><i></i><i></i></span><span class="wing r"><i></i><i></i><i></i></span><span class="halo"></span></span>');
+
+  // 배경 스티커 (화면 가장자리 위주로, 뿌옇게 몇 개)
+  const kao = (x, y, text, c, rot) => `<span class="wd kao wide" style="left:${x};top:${y};color:${c};transform:rotate(${rot}deg)">${text}</span>`;
+  const layer = document.createElement('div');
+  layer.className = 'wish-deco';
+  layer.setAttribute('aria-hidden', 'true');
+  layer.innerHTML = [
+    sticker('2%', '15%', 30, -10, WD.button('#fbd3e1', '#f39cbb'), 'wide'),
+    sticker('88%', '9%', 34, 12, WD.naruto),
+    sticker('80%', '27%', 26, 14, WD.star('#b9d7f0'), 'soft'),
+    sticker('1%', '34%', 44, -8, WD.wing, 'soft'),
+    sticker('89%', '43%', 30, -6, WD.clover),
+    sticker('3%', '52%', 22, 0, WD.note('#f6a9c3')),
+    sticker('85%', '58%', 44, 6, WD.jelly, 'glow'),
+    sticker('1%', '66%', 42, -14, WD.berry, 'soft'),
+    sticker('91%', '72%', 28, 10, WD.button('#d6e8f8', '#8ec1ec')),
+    sticker('4%', '80%', 34, -6, WD.swirl('#c3e0a8')),
+    sticker('82%', '83%', 38, 8, WD.tomato, 'soft'),
+    sticker('46%', '3%', 22, 8, WD.star('#dfe9b8'), 'soft wide'),
+    sticker('70%', '4%', 20, 0, WD.button('#e6dcf6', '#b79ce0'), 'wide'),
+    sticker('18%', '90%', 26, -10, WD.button('#d8edd2', '#9cc98a')),
+    sticker('63%', '91%', 40, 0, WD.cat, 'wide'),
+    sticker('40%', '86%', 18, 12, WD.note('#8ec1ec'), 'wide'),
+    sticker('92%', '93%', 22, 18, WD.star('#f8c4d6'), 'soft'),
+    sticker('27%', '6%', 28, -8, WD.swirl('#f6c2d4'), 'wide'),
+    kao('6%', '25%', 'ฅ^•ﻌ•^ฅ', '#8ec1ec', -6),
+    kao('70%', '50%', '(˶ᵔ ᵕ ᵔ˶)', '#f39cbb', 4),
+    kao('8%', '93%', '♡', '#f6a9c3', -10),
+    kao('74%', '67%', '·˚ ✧ ˚·', '#a9cdee', 0),
+  ].join('');
+  document.body.prepend(layer);
+}
+setupWishDecor();
 
 function renderCalendar() {
   renderSpaceMoon();
@@ -1049,6 +1127,7 @@ function renderSection(cat, items, canAdd) {
   const dot = document.createElement('span');
   dot.className = 'cat-dot';
   const name = document.createElement('span');
+  name.className = 'cat-title';
   name.textContent = cat.name;
   head.append(dot, name);
   if (canAdd) {

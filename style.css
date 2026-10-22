@@ -3093,9 +3093,10 @@ html[data-theme="cereal"] { overflow-x: clip; }
 @media (pointer: fine) { :root { --bleed-extra: 20px; } }
 
 /* =====================================================================
-   🎀 위시코어
+   🎀 위시코어 (시안 그대로)
    ===================================================================== */
 @font-face { font-family: 'SDMiSaeng'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/SDMiSaeng.woff') format('woff'); font-display: swap; }
+.icon-wish, .wish-angel, .wish-deco { display: none; }
 
 :root[data-theme="wish"] {
   --bg: #fdfbfb;
@@ -3129,8 +3130,8 @@ html[data-theme="cereal"] { overflow-x: clip; }
   --btn-bg: transparent;
   --btn-border: transparent;
   --btn-color: #5b88b8;
-  --tab-bg: rgba(255, 255, 255, 0.92);
-  --tab-border: #e3eef8;
+  --tab-bg: #fbe4ec;
+  --tab-border: transparent;
   --tab-active: #5b9ae0;
   --tab-active-bg: transparent;
   --tab-inactive: #a7bcd2;
@@ -3138,7 +3139,14 @@ html[data-theme="cereal"] { overflow-x: clip; }
   --shadow: 0 0 0 6px rgba(255, 255, 255, 0.6), 0 14px 30px -16px rgba(80, 140, 200, 0.45);
   --font: 'Gowun Dodum', 'Pretendard', sans-serif;
 }
-[data-theme="wish"] body { background: linear-gradient(165deg, #fde6ee 0%, #fdfbfb 48%, #e3f2dc 100%) fixed; }
+/* 바탕: 핑크 → 흰색 → 초록, 양쪽 아래 뿌연 번짐 */
+[data-theme="wish"] body {
+  background:
+    radial-gradient(circle at 0% 72%, rgba(251, 211, 225, 0.6), transparent 32%),
+    radial-gradient(circle at 100% 86%, rgba(217, 237, 200, 0.75), transparent 32%),
+    linear-gradient(165deg, #fde6ee 0%, #fdfbfb 48%, #e3f2dc 100%) fixed;
+  background-attachment: fixed;
+}
 [data-theme="wish"] .home-name,
 [data-theme="wish"] .day-title,
 [data-theme="wish"] .day-label,
@@ -3148,7 +3156,8 @@ html[data-theme="cereal"] { overflow-x: clip; }
 [data-theme="wish"] .sheet h2 { font-family: 'Gaegu', cursive; font-weight: 700; }
 [data-theme="wish"] .home-name { font-size: 30px; line-height: 1.1; }
 [data-theme="wish"] .day-title { font-size: 34px; }
-[data-theme="wish"] .day-label { font-size: 21px; color: #f28cb1; display: inline-flex; align-items: center; gap: 6px; }
+[data-theme="wish"] .day-label { font-size: 21px; color: #f28cb1; display: inline-flex; align-items: center; gap: 10px; }
+[data-theme="wish"] .day-label::after { content: ""; width: 21px; height: 21px; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2028%2028%27%3E%3Cg%20fill%3D%27%239cc98a%27%3E%3Ccircle%20cx%3D%278.5%27%20cy%3D%278.5%27%20r%3D%278.2%27%2F%3E%3Ccircle%20cx%3D%2719.5%27%20cy%3D%278.5%27%20r%3D%278.2%27%2F%3E%3Ccircle%20cx%3D%278.5%27%20cy%3D%2719.5%27%20r%3D%278.2%27%2F%3E%3Ccircle%20cx%3D%2719.5%27%20cy%3D%2719.5%27%20r%3D%278.2%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") center / contain no-repeat; transform: rotate(-12deg); }
 [data-theme="wish"] .cal-title { font-size: 25px; }
 [data-theme="wish"] .cal-nav { color: #8ec1ec; }
 [data-theme="wish"] .cal-num { color: #4a6d92; }
@@ -3157,22 +3166,12 @@ html[data-theme="cereal"] { overflow-x: clip; }
 [data-theme="wish"] .todo-item.done .todo-title { color: #a7bcd2; }
 [data-theme="wish"] .progress-done { display: none; }
 
-/* "오늘" 옆 네잎클로버 */
-[data-theme="wish"] .day-label::after {
-  content: "";
-  width: 22px;
-  height: 22px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Cg fill='%239cc98a'%3E%3Ccircle cx='9' cy='9' r='5.5'/%3E%3Ccircle cx='17' cy='9' r='5.5'/%3E%3Ccircle cx='17' cy='17' r='5.5'/%3E%3Ccircle cx='9' cy='17' r='5.5'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
-  transform: rotate(12deg);
-}
-
-/* 위: 물방울 무늬 띠 + 아래 점선 (화면 끝까지) */
+/* 위 막대: 무늬 없이 아래 점선만 */
 [data-theme="wish"] .home-top-bar {
   min-height: 52px;
   margin: -40px -16px 8px;
-  padding: 8px 16px;
+  padding: 6px 16px;
   align-items: center;
-  background: radial-gradient(#d6e8f8 1.8px, transparent 2.4px) 0 0 / 16px 16px;
   border-bottom: 1.5px dashed #ecd6e2;
 }
 @media (max-width: 480px) { [data-theme="wish"] .home-top-bar { margin-top: -20px; } }
@@ -3186,92 +3185,102 @@ html[data-theme="cereal"] { overflow-x: clip; }
   html[data-theme="wish"] { overflow-x: clip; }
 }
 @media (min-width: 900px) { [data-theme="wish"] .home-top-bar { margin-top: -56px; } }
-[data-theme="wish"] .menu-button { border: none; background: transparent; }
+/* 위 아이콘: 테두리 원 없이 하트 편지 · 고양이 둘 */
+[data-theme="wish"] .home-top-bar .menu-button { width: 42px; height: 42px; border: none; background: transparent; box-shadow: none; }
+[data-theme="wish"] .home-top-bar .menu-button > svg:not(.icon-wish) { display: none; }
+[data-theme="wish"] .home-top-bar .icon-wish { display: block; width: 29px; height: 28px; }
 [data-theme="wish"] .menu-button:hover,
-[data-theme="wish"] .menu-button[aria-expanded="true"] { background: rgba(142, 193, 236, 0.18); }
+[data-theme="wish"] .menu-button[aria-expanded="true"] { background: rgba(142, 193, 236, 0.16); }
 
-/* 프로필: 하늘색 헤일로 + 흰 날개 */
-[data-theme="wish"] .me-row { position: relative; }
+/* 프로필: 헤일로 + 흰 날개 (깃털 3장씩) */
+[data-theme="wish"] .me-row { position: relative; gap: 18px; padding-top: 10px; }
 [data-theme="wish"] .profile-photo.home-photo {
   position: relative;
   z-index: 1;
+  width: 64px;
+  height: 64px;
   border: 3px solid #cfe4f6;
   box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.8), 0 0 24px rgba(142, 193, 236, 0.5);
   background: #ffffff;
 }
-[data-theme="wish"] .me-row::before {
-  content: "";
+[data-theme="wish"] .profile-text { align-self: flex-end; padding-bottom: 2px; }
+[data-theme="wish"] .wish-angel { display: block; position: absolute; left: 0; top: 10px; width: 64px; height: 64px; pointer-events: none; }
+.wish-angel .wing { position: absolute; top: 20px; width: 30px; height: 30px; }
+.wish-angel .wing.l { left: -22px; transform: rotate(-14deg); }
+.wish-angel .wing.r { left: 56px; transform: rotate(14deg); z-index: 0; }
+.wish-angel .wing i { position: absolute; box-sizing: border-box; background: #fff; border: 2px solid #a9cdee; }
+.wish-angel .wing.l i:nth-child(1) { right: 0; top: 0; width: 28px; height: 13px; border-radius: 13px 13px 2px 13px; }
+.wish-angel .wing.l i:nth-child(2) { right: 1px; top: 9px; width: 21px; height: 12px; border-radius: 11px 11px 2px 11px; }
+.wish-angel .wing.l i:nth-child(3) { right: 2px; top: 17px; width: 14px; height: 10px; border-radius: 8px 8px 2px 8px; }
+.wish-angel .wing.r i:nth-child(1) { left: 0; top: 0; width: 28px; height: 13px; border-radius: 13px 13px 13px 2px; }
+.wish-angel .wing.r i:nth-child(2) { left: 1px; top: 9px; width: 21px; height: 12px; border-radius: 11px 11px 11px 2px; }
+.wish-angel .wing.r i:nth-child(3) { left: 2px; top: 17px; width: 14px; height: 10px; border-radius: 8px 8px 8px 2px; }
+.wish-angel .halo {
   position: absolute;
   z-index: 2;
-  left: 1px;
-  top: -16px;
+  left: 50%;
+  top: -15px;
   width: 48px;
   height: 13px;
+  transform: translateX(-50%);
+  box-sizing: border-box;
   border: 3px solid #a9cdee;
   border-radius: 50%;
-  box-shadow: 0 0 8px rgba(142, 193, 236, 0.8), inset 0 0 4px rgba(142, 193, 236, 0.6);
+  box-shadow: 0 0 10px rgba(142, 193, 236, 0.9);
 }
-[data-theme="wish"] .me-row::after {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  left: -17px;
-  top: 6px;
-  width: 84px;
-  height: 37px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 40'%3E%3Cg fill='%23fff' stroke='%23a9cdee' stroke-width='1.8'%3E%3Cpath d='M20 12 C10 2 1 6 2 12 C8 12 14 14 20 18Z'/%3E%3Cpath d='M20 18 C8 14 0 18 3 24 C9 22 14 22 20 24Z'/%3E%3Cpath d='M20 24 C10 24 4 30 9 34 C13 30 16 28 21 29Z'/%3E%3Cpath d='M70 12 C80 2 89 6 88 12 C82 12 76 14 70 18Z'/%3E%3Cpath d='M70 18 C82 14 90 18 87 24 C81 22 76 22 70 24Z'/%3E%3Cpath d='M70 24 C80 24 86 30 81 34 C77 30 74 28 69 29Z'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
-}
-[data-theme="wish"] .profile-text { position: relative; z-index: 1; padding-left: 14px; }
 
 /* 달력 카드: 위 가장자리 흰 레이스 + 왼쪽 위 분홍 리본 */
-[data-theme="wish"] .calendar { position: relative; border: 2px solid #e3eef8; margin-top: 8px; }
+[data-theme="wish"] .calendar { position: relative; border: 2px solid #e3eef8; margin-top: 10px; }
 [data-theme="wish"] .calendar::after {
   content: "";
   position: absolute;
-  top: -7px;
-  left: 18px;
-  right: 18px;
-  height: 8px;
-  background: radial-gradient(circle at 6px 8px, #ffffff 5.5px, transparent 6px) 0 0 / 12px 8px repeat-x;
+  top: -10px;
+  left: 22px;
+  right: 22px;
+  height: 9px;
+  background: radial-gradient(circle at 6px 9px, #fffafc 5.5px, transparent 6px) 0 0 / 12px 9px repeat-x;
   pointer-events: none;
 }
 [data-theme="wish"] .calendar::before {
   content: "";
   position: absolute;
-  z-index: 1;
-  top: -16px;
+  z-index: 2;
   left: -14px;
-  width: 50px;
-  height: 36px;
+  top: -16px;
+  width: 44px;
+  height: 34px;
   transform: rotate(-14deg);
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 28'%3E%3Cg stroke='%23e0628f' stroke-width='1' stroke-linejoin='round'%3E%3Cpath d='M18 13 L12 27 L15.5 25.5 L20 15Z' fill='%23f6a9c3'/%3E%3Cpath d='M22 13 L28 27 L24.5 25.5 L20 15Z' fill='%23f6a9c3'/%3E%3Cpath d='M20 11 C12 2 2 4 4 12 C6 20 14 16 20 11Z' fill='%23ffb6cf'/%3E%3Cpath d='M20 11 C28 2 38 4 36 12 C34 20 26 16 20 11Z' fill='%23ffb6cf'/%3E%3Ccircle cx='20' cy='11.5' r='3.6' fill='%23f28cb1'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2044%2034%27%3E%3Cpolygon%20points%3D%270%2C3%2020%2C11.4%2020%2C16.6%200%2C25%27%20fill%3D%27%23f6b3c8%27%2F%3E%3Cpolygon%20points%3D%2744%2C3%2024%2C11.4%2024%2C16.6%2044%2C25%27%20fill%3D%27%23f6b3c8%27%2F%3E%3Cpolygon%20transform%3D%27rotate(20%2014.5%2025)%27%20points%3D%2711%2C19%2018%2C19%2016.6%2C31%2014.2%2C28.4%2011%2C31%27%20fill%3D%27%23f6b3c8%27%2F%3E%3Cpolygon%20transform%3D%27rotate(-20%2028.5%2025)%27%20points%3D%2725%2C19%2032%2C19%2032%2C31%2028.9%2C28.4%2026.4%2C31%27%20fill%3D%27%23f6b3c8%27%2F%3E%3Crect%20x%3D%2716%27%20y%3D%277%27%20width%3D%2712%27%20height%3D%2714%27%20rx%3D%275%27%20fill%3D%27%23f39cbb%27%20stroke%3D%27%23e27fa3%27%20stroke-width%3D%271.5%27%2F%3E%3Cpath%20d%3D%27M18.5%209.2h7%27%20stroke%3D%27%23fff%27%20stroke-opacity%3D%27.45%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
   pointer-events: none;
 }
 
 /* 달력 마크: 나루토마끼 */
-.naruto-mark { position: relative; display: grid; place-items: center; width: 32px; height: 32px; }
+.naruto-mark { position: relative; display: grid; place-items: center; width: 30px; height: 30px; margin: 1px 0; }
 .naruto-mark svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.naruto-empty { fill: #f2f7fb; stroke: #dde9f3; stroke-width: 1; }
-.naruto-part { fill: #e6f1fb; stroke: #b9d4ee; stroke-width: 1; }
-.naruto-full { fill: #ffffff; stroke: #c4cfdb; stroke-width: 1; }
-.naruto-swirl { fill: none; stroke: #f28cb1; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.naruto-mark span { position: relative; font-size: 11.5px; font-weight: 700; color: #4f7fb3; }
+.naruto-rim-empty { fill: #dde9f3; }
+.naruto-rim-part { fill: #b9d4ee; }
+.naruto-rim-full { fill: #c4cfdb; }
+.naruto-empty { fill: #f2f7fb; }
+.naruto-part { fill: #e6f1fb; }
+.naruto-full { fill: #ffffff; }
+.naruto-swirl { fill: none; stroke: #f28cb1; stroke-width: 2; stroke-linecap: round; }
+.naruto-mark span { position: relative; font-size: 11px; font-weight: 800; color: #4f7fb3; }
 
 /* 진행 표시: 얇은 스티치 리본끈 */
 [data-theme="wish"] .progress-bar { height: 10px; border-radius: 5px; }
 [data-theme="wish"] .progress-fill { border-radius: 5px; }
 
-/* 카테고리: 파스텔 반창고 (가운데 흰 패드 + 작은 구멍 무늬), 번갈아 삐뚤빼뚤 */
+/* 카테고리: 파스텔 반창고 — 글씨는 가운데 흰 패드 안에, 양 끝은 작은 구멍 무늬 */
 [data-theme="wish"] .cat-head {
-  padding: 4px 10px 4px 12px;
+  gap: 6px;
+  padding: 5px 8px 5px 14px;
   font-size: 20px;
+  line-height: 1.2;
   border-radius: 999px;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)) center / 52% 70% no-repeat,
-    radial-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1.5px) 0 0 / 6px 6px,
-    var(--cat-soft);
+  background: radial-gradient(rgba(255, 255, 255, 0.95) 1px, transparent 1.5px) 0 0 / 6px 6px, var(--cat-soft);
   box-shadow: 0 1px 3px rgba(80, 120, 170, 0.2);
 }
+[data-theme="wish"] .cat-title { padding: 1px 10px; background: rgba(255, 255, 255, 0.92); border-radius: 3px; }
 [data-theme="wish"] .cat-dot { display: none; }
 [data-theme="wish"] .cat-plus { background: transparent; box-shadow: none; opacity: 0.6; }
 [data-theme="wish"] .cat-section:nth-child(4n + 1) .cat-head { transform: rotate(-2deg); }
@@ -3281,38 +3290,50 @@ html[data-theme="cereal"] { overflow-x: clip; }
 
 /* 체크 = 원 + ★ */
 [data-theme="wish"] .todo-item.done .check svg { display: none; }
-[data-theme="wish"] .todo-item.done .check::after { content: "★"; font-size: 12px; line-height: 1; color: #ffffff; }
+[data-theme="wish"] .todo-item.done .check::after { content: "★"; font-size: 15px; line-height: 1; color: #ffffff; }
 
-/* 탭바 아이콘: 날개 집 · 초록 소용돌이 · 토마토 · 헤드폰♪ */
-[data-theme="wish"] .tabbar { border-top: 1px solid #e3eef8; }
-[data-theme="wish"] .tab svg { display: none; }
-[data-theme="wish"] .tab-label { font-family: 'Gowun Dodum', sans-serif; }
+/* 탭바: 물방울 무늬 천 + 바느질선, 버튼은 뿌옇게 빛나는 동그라미 */
+[data-theme="wish"] .tabbar {
+  border-top: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.95) 50%, transparent 50%) 0 6px / 10px 1.6px repeat-x,
+    radial-gradient(circle, rgba(255, 255, 255, 0.9) 2.4px, transparent 3px) 0 0 / 15px 15px,
+    #fbe4ec;
+  box-shadow: 0 -6px 18px rgba(246, 169, 195, 0.25);
+}
+[data-theme="wish"] .tab { isolation: isolate; font-family: 'Gaegu', cursive; }
+[data-theme="wish"] .tab-label { font-family: 'Gaegu', cursive; font-size: 14px; font-weight: 700; }
+[data-theme="wish"] .tab .icon-line,
+[data-theme="wish"] .tab .icon-fill { display: none; }
+[data-theme="wish"] .tab .icon-wish { display: block; width: 34px; height: 30px; transition: transform 0.2s; }
 [data-theme="wish"] .tab::before {
   content: "";
-  width: 30px;
-  height: 30px;
-  background: var(--wish-icon) center / contain no-repeat;
-  opacity: 0.55;
-  transition: opacity 0.2s, transform 0.2s;
-}
-[data-theme="wish"] .tab[aria-current="page"]::before { opacity: 1; transform: scale(1.08); }
-[data-theme="wish"] .tab:nth-child(1) { --wish-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M5 16 L14 8 L23 16 V27 H5Z M11 27 V20 H17 V27' fill='%23fff' stroke='%235b9ae0' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M21 10 C24 5 30 4 31 7 C29 7 30 9 28 9.5 C29 11 26 12 24 11.5Z' fill='%23fff' stroke='%238ec1ec' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E"); }
-[data-theme="wish"] .tab:nth-child(2) { --wish-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 16 a2 2 0 1 1 3 1.5 a4.5 4.5 0 1 1 -7.5 -3.5 a7.5 7.5 0 1 1 11.5 7 a10.5 10.5 0 1 1 -15.5 -10' fill='none' stroke='%238cc56f' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E"); }
-[data-theme="wish"] .tab:nth-child(3) { --wish-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='18' r='10.5' fill='%23f0786e'/%3E%3Cellipse cx='12' cy='15' rx='2.5' ry='1.6' fill='%23fff' opacity='.7'/%3E%3Cpath d='M16 9 L12 6.5 M16 9 L20 6.5 M16 9 L16 4.5 M16 9 L13 10.5 M16 9 L19 10.5' stroke='%2378b35c' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E"); }
-[data-theme="wish"] .tab:nth-child(4) { --wish-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 21 V16 A10 10 0 0 1 26 16 V21' fill='none' stroke='%238aa7c4' stroke-width='2.4' stroke-linecap='round'/%3E%3Crect x='3.5' y='18' width='6' height='9' rx='2.5' fill='%23f6a9c3'/%3E%3Crect x='22.5' y='18' width='6' height='9' rx='2.5' fill='%23f6a9c3'/%3E%3Cpath d='M27 3 V9.5' stroke='%23f28cb1' stroke-width='1.6'/%3E%3Cpath d='M27 3 L31 4.5' stroke='%23f28cb1' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='25.6' cy='9.8' r='1.8' fill='%23f28cb1'/%3E%3C/svg%3E"); }
-
-/* 장식: 흐린 별 · 크레파스 소용돌이 · 클로버 (화면 뒤쪽에 고정) */
-[data-theme="wish"] body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
+  position: absolute;
   z-index: -1;
-  pointer-events: none;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1 L12.6 7.2 L19 7.6 L14 11.8 L15.6 18.4 L10 14.8 L4.4 18.4 L6 11.8 L1 7.6 L7.4 7.2Z' fill='%23b9d7f0'/%3E%3C/svg%3E") right 14px top 22% / 20px no-repeat,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1 L12.6 7.2 L19 7.6 L14 11.8 L15.6 18.4 L10 14.8 L4.4 18.4 L6 11.8 L1 7.6 L7.4 7.2Z' fill='%23dfe9b8'/%3E%3C/svg%3E") right 12px bottom 22% / 30px no-repeat,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 16 a2 2 0 1 1 3 1.5 a4.5 4.5 0 1 1 -7.5 -3.5 a7.5 7.5 0 1 1 11.5 7 a10.5 10.5 0 1 1 -15.5 -10' fill='none' stroke='%23c3e0a8' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") left 6px bottom 16% / 36px no-repeat,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 16 a2 2 0 1 1 3 1.5 a4.5 4.5 0 1 1 -7.5 -3.5 a7.5 7.5 0 1 1 11.5 7 a10.5 10.5 0 1 1 -15.5 -10' fill='none' stroke='%23f6c2d4' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") right 18% top 13% / 26px no-repeat,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Cg fill='%23a8d48f' opacity='.75'%3E%3Ccircle cx='9' cy='9' r='5.5'/%3E%3Ccircle cx='17' cy='9' r='5.5'/%3E%3Ccircle cx='17' cy='17' r='5.5'/%3E%3Ccircle cx='9' cy='17' r='5.5'/%3E%3C/g%3E%3C/svg%3E") right 8% top 15% / 30px no-repeat;
-  filter: blur(0.6px);
+  left: 50%;
+  top: 0;
+  width: 58px;
+  height: 52px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.65) 55%, rgba(255, 255, 255, 0));
+  filter: blur(2px);
+  opacity: 0.75;
+  transition: opacity 0.2s;
+}
+[data-theme="wish"] .tab[aria-current="page"]::before { opacity: 1; background: radial-gradient(closest-side, #ffffff, rgba(214, 232, 248, 0.9) 50%, rgba(214, 232, 248, 0)); }
+[data-theme="wish"] .tab[aria-current="page"] .icon-wish { transform: scale(1.1); }
+
+/* 배경 스티커 층 */
+[data-theme="wish"] .wish-deco { display: block; position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.wish-deco .wd { position: absolute; display: block; opacity: 0.9; }
+.wish-deco .wd svg { display: block; width: 100%; height: auto; }
+.wish-deco .wd.soft { filter: blur(1.1px); opacity: 0.75; }
+.wish-deco .wd.glow { filter: drop-shadow(0 0 10px rgba(142, 193, 236, 0.85)); }
+.wish-deco .kao { font-family: 'Gaegu', cursive; font-size: 16px; font-weight: 700; white-space: nowrap; opacity: 0.75; }/* 폰: 글씨 위로 겹치는 스티커는 숨기고 가장자리 것만 연하게 */
+@media (max-width: 700px) {
+  .wish-deco .wide { display: none; }
+  .wish-deco .wd { opacity: 0.6; scale: 0.8; }
 }
