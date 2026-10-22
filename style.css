@@ -2545,3 +2545,172 @@ body {
   transform: rotate(-5deg);
   pointer-events: none;
 }
+/* 탭바: 꽉 찬 아이콘은 아이폰 테마에서만 */
+.tab .icon-fill { display: none; width: 24px; height: 24px; }
+
+/* =====================================================================
+   📱 아이폰 2007
+   ===================================================================== */
+:root[data-theme="iphone"] {
+  --bg: #dce2ea;
+  --bg-image: linear-gradient(#e4e9ef, #d3dae3);
+  --surface: #ffffff;
+  --text: #1d2633;
+  --text-2: #3d4757;
+  --text-muted: #4c566c;
+  --text-faint: #8e98a6;
+  --border: #b9c1cc;
+  --border-strong: #8e98a6;
+  --primary: #3f6fae;
+  --on-primary: #ffffff;
+  --primary-soft: #dbe6f4;
+  --primary-soft-hover: #cddcf0;
+  --primary-hover: #2f5b95;
+  --sunday: #c0392b;
+  --saturday: #2f6db5;
+  --box-empty: #8e98a6;
+  --sel-bg: linear-gradient(#7fa9dd, #3f6fae);
+  --sel-fg: #ffffff;
+  --today-pill-bg: linear-gradient(#fdfdfd, #d9dde3);
+  --today-pill-fg: #2c3e57;
+  --prog-track: linear-gradient(#cfd3d8, #eef0f2);
+  --prog-fill: linear-gradient(#a8d2fb, #5ea4ec 50%, #478fe0 51%, #6cb2f4);
+  --btn-bg: linear-gradient(#8da3c1, #5f7ba2 50%, #4d6a93 51%, #5a77a0);
+  --btn-border: #34486a;
+  --btn-color: #ffffff;
+  --tab-bg: linear-gradient(#5c5c5c 0, #2e2e2e 1px, #1c1c1c 50%, #000 51%);
+  --tab-border: #000;
+  --tab-active: #ffffff;
+  --tab-inactive: #9a9a9a;
+  --card-radius: 10px;
+  --radius: 10px;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+  --font: "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+  --emboss: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* 글자에 흰 엠보스 */
+[data-theme="iphone"] .home-name,
+[data-theme="iphone"] .home-bio,
+[data-theme="iphone"] .day-label,
+[data-theme="iphone"] .day-title,
+[data-theme="iphone"] .progress-text,
+[data-theme="iphone"] .todo-title,
+[data-theme="iphone"] .cal-weekdays span,
+[data-theme="iphone"] .cal-num,
+[data-theme="iphone"] .view-title,
+[data-theme="iphone"] .postpone-link { text-shadow: var(--emboss); }
+[data-theme="iphone"] .day-title { font-weight: 700; }
+
+/* 맨 위 유광 남색 막대 + 가운데 "Home" */
+[data-theme="iphone"] .home-top-bar {
+  position: relative;
+  min-height: 46px;
+  margin: -40px -16px 4px;
+  padding: 7px 10px;
+  align-items: center;
+  background: linear-gradient(#b3c0d1, #8197b4 50%, #6e86a7 51%, #5c779c);
+  border-bottom: 1px solid #2d3a4e;
+}
+[data-theme="iphone"] .home-top-bar::before {
+  content: "Home";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 19px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+@media (max-width: 480px) { [data-theme="iphone"] .home-top-bar { margin-top: -20px; } }
+
+/* 반짝이는 네모 버튼 */
+[data-theme="iphone"] .menu-button {
+  width: 42px;
+  height: 32px;
+  border-radius: 7px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+[data-theme="iphone"] .day-actions .menu-button svg,
+[data-theme="iphone"] .home-top-bar .menu-button svg { filter: drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.35)); }
+
+/* 프로필 사진: 둥근 네모 */
+[data-theme="iphone"] .profile-photo.home-photo,
+[data-theme="iphone"] .profile-card .profile-photo {
+  border-radius: 16px;
+  box-shadow: 0 0 0 1px #8e98a6, 0 1px 0 1px rgba(255, 255, 255, 0.7), 0 2px 5px rgba(0, 0, 0, 0.25);
+}
+
+/* 카드: 1px 회색 테두리 */
+[data-theme="iphone"] .calendar,
+[data-theme="iphone"] .settings-list,
+[data-theme="iphone"] .profile-card,
+[data-theme="iphone"] .study-card,
+[data-theme="iphone"] .blk:not(.rest) { border: 1px solid #8e98a6; }
+
+/* 달력: 얇은 은색 유광 머리줄 */
+[data-theme="iphone"] .calendar { padding-top: 0; overflow: hidden; }
+[data-theme="iphone"] .cal-header {
+  margin: 0 -16px 10px;
+  padding: 7px 12px 7px 16px;
+  background: linear-gradient(#f7f8fa, #cfd5dd);
+  border-bottom: 1px solid #9aa3b0;
+}
+[data-theme="iphone"] .cal-title { font-size: 16px; font-weight: 700; color: #2c3e57; text-shadow: 0 1px 0 #fff; }
+[data-theme="iphone"] .cal-nav { color: #4c566c; }
+[data-theme="iphone"] .cal-today { border: 1px solid #8e98a6; text-shadow: 0 1px 0 #fff; }
+[data-theme="iphone"] .cal-num { color: #2c3e57; }
+[data-theme="iphone"] .cal-day.selected .cal-num { text-shadow: none; }
+
+/* 달력 마크 = 젤리 버튼: 남은 일이 많을수록 진한 파랑, 다 끝낸 날은 은색 + 파란 ✓ */
+[data-theme="iphone"] .mark {
+  border-radius: 50%;
+  border: 1px solid #a3abb7;
+  background: linear-gradient(#fdfdfe, #dfe3e8);
+  box-shadow: inset 0 1px 0 #fff;
+}
+[data-theme="iphone"] .mark.part[data-left="1"] { background: linear-gradient(#f1f7fe, #cfe1f6); border-color: #a5bedd; color: #2b5a94; }
+[data-theme="iphone"] .mark.part[data-left="2"] { background: linear-gradient(#d3e5f9, #8db5e8); border-color: #7097c8; color: #173f73; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8); }
+[data-theme="iphone"] .mark.part[data-left="3"] { background: linear-gradient(#9cc4f2, #4f8fdb 50%, #3d7fd0 51%, #5a99e0); border-color: #2f66ad; color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55); }
+[data-theme="iphone"] .mark.part[data-left="4"] { background: linear-gradient(#6f95c9, #2c5797 50%, #1d4583 51%, #2c5899); border-color: #143260; color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+[data-theme="iphone"] .mark.full { background: linear-gradient(#ffffff, #eceef1 50%, #dde1e6 51%, #f1f3f5); border-color: #9aa3b0; color: #2f6db5; }
+
+/* 진행 막대: 유광 파랑 */
+[data-theme="iphone"] .progress-bar { height: 14px; border: 1px solid #8e98a6; border-radius: 7px; }
+[data-theme="iphone"] .progress-fill { border-radius: 6px; }
+
+/* 카테고리 = 유광 알약 (카테고리 색으로 반짝이게) */
+[data-theme="iphone"] .cat-section {
+  --cat-gloss: linear-gradient(color-mix(in srgb, var(--cat) 45%, #fff), var(--cat) 50%, color-mix(in srgb, var(--cat) 86%, #000) 51%, color-mix(in srgb, var(--cat) 90%, #fff));
+}
+[data-theme="iphone"] .cat-head {
+  color: #fff;
+  background: var(--cat-gloss);
+  border: 1px solid rgba(0, 0, 0, 0.28);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 1px 1px rgba(0, 0, 0, 0.15);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3);
+}
+[data-theme="iphone"] .cat-head .cat-dot { background: rgba(255, 255, 255, 0.9); }
+[data-theme="iphone"] .cat-plus { color: #fff; background: rgba(255, 255, 255, 0.3); box-shadow: none; }
+
+/* 체크칸: 은색 젤리, 끝내면 카테고리 색 유광 */
+[data-theme="iphone"] .check { border-width: 1px; background: linear-gradient(#fff, #e4e7eb); }
+[data-theme="iphone"] .todo-item.done .check { background: var(--cat-gloss, var(--cat)); border-color: rgba(0, 0, 0, 0.3); }
+[data-theme="iphone"] .todo-title { color: #111; }
+[data-theme="iphone"] .todo-item.done .todo-title { color: #9aa2ad; }
+
+/* 탭바: 검은 유광, 꽉 찬 아이콘, 영어 라벨, 선택 탭에 흰 빛 */
+[data-theme="iphone"] .tabbar { backdrop-filter: none; -webkit-backdrop-filter: none; border-top: 1px solid #000; gap: 4px; padding-top: 4px; }
+[data-theme="iphone"] .tab .icon-line { display: none; }
+[data-theme="iphone"] .tab .icon-fill { display: block; width: 30px; height: 30px; }
+[data-theme="iphone"] .tab-label { font-size: 0; }
+[data-theme="iphone"] .tab-label::after { content: attr(data-en); font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; }
+[data-theme="iphone"] .tab { border-radius: 6px; padding: 4px 0 3px; }
+[data-theme="iphone"] .tab[aria-current="page"] {
+  background: linear-gradient(rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.04) 51%, rgba(255, 255, 255, 0.08));
+}
+[data-theme="iphone"] .tab[aria-current="page"] .icon-fill { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.95)); }[data-theme="iphone"] .menu-button[aria-expanded="true"],
+[data-theme="iphone"] .menu-button:hover { color: #fff; background: linear-gradient(#7d93b1, #4f6b93 50%, #3d5a83 51%, #4a6790); border-color: #34486a; }

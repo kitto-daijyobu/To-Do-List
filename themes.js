@@ -40,7 +40,7 @@ export const THEMES = [
   {
     id: 'iphone', name: '아이폰 2007', sub: '유광 버튼 · 은회색',
     swatches: ['#dce2ea', '#ffffff', '#6e86a7', '#4f93e0', '#000000'],
-    statusColor: '#000000', mark: 'shape', ready: false,
+    statusColor: '#000000', mark: 'shape', ready: true,
   },
   {
     id: 'dark', name: '다크 · 부드러운 밤', sub: '눈이 편한 밤 화면',

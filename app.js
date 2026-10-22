@@ -873,6 +873,7 @@ function renderCalendar() {
     } else {
       // 다른 테마: 빈 날 / 진행 중(남은 개수) / 다 끝냄(✓)
       clover.className = 'mark' + (total && done === total ? ' full' : total ? ' part' : '');
+      clover.dataset.left = String(Math.min(total - done, 4)); // 아이폰: 남은 일이 많을수록 진한 파랑
       if (total && done === total) clover.innerHTML = checkSvg;
       else if (total) clover.textContent = total - done;
     }
