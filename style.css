@@ -3172,7 +3172,6 @@ html[data-theme="cereal"] { overflow-x: clip; }
   margin: -40px -16px 8px;
   padding: 6px 16px;
   align-items: center;
-  border-bottom: 1.5px dashed #ecd6e2;
 }
 @media (max-width: 480px) { [data-theme="wish"] .home-top-bar { margin-top: -20px; } }
 @media all {
@@ -3332,8 +3331,46 @@ html[data-theme="cereal"] { overflow-x: clip; }
 .wish-deco .wd svg { display: block; width: 100%; height: auto; }
 .wish-deco .wd.soft { filter: blur(1.1px); opacity: 0.75; }
 .wish-deco .wd.glow { filter: drop-shadow(0 0 10px rgba(142, 193, 236, 0.85)); }
-.wish-deco .kao { font-family: 'Gaegu', cursive; font-size: 16px; font-weight: 700; white-space: nowrap; opacity: 0.75; }/* 폰: 글씨 위로 겹치는 스티커는 숨기고 가장자리 것만 연하게 */
-@media (max-width: 700px) {
-  .wish-deco .wide { display: none; }
-  .wish-deco .wd { opacity: 0.6; scale: 0.8; }
+.wish-deco .kao { font-family: 'Gaegu', cursive; font-size: 16px; font-weight: 700; white-space: nowrap; opacity: 0.75; }
+/* ----- 위시코어 다듬기 ----- */
+/* 다 끝낸 날: 나루토마끼가 통 튀어 오르며 분홍 소용돌이가 그려지고 반짝 빛나요 */
+.naruto-mark.pop svg { animation: naruto-pop 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) var(--pop-delay, 0s) both; }
+.naruto-mark.pop .naruto-swirl { stroke-dasharray: 1; animation: naruto-draw 0.9s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--pop-delay, 0s) + 0.2s) both; }
+.naruto-mark.pop::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(246, 169, 195, 0.55), rgba(246, 169, 195, 0));
+  animation: naruto-glow 1.1s ease-out var(--pop-delay, 0s) both;
+  pointer-events: none;
 }
+@keyframes naruto-pop { 0% { transform: scale(0.55) rotate(-90deg); } 60% { transform: scale(1.18) rotate(8deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes naruto-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes naruto-glow { 0% { opacity: 0; transform: scale(0.6); } 35% { opacity: 1; } 100% { opacity: 0; transform: scale(1.6); } }
+
+/* 탭바: 무늬 없이 뿌연 반투명, 지금 탭만 은은하게 빛나요. 글씨는 숨겨요 (아이폰도) */
+[data-theme="wish"] .tabbar {
+  background: rgba(255, 250, 252, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 -8px 24px rgba(246, 169, 195, 0.18);
+}
+[data-theme="wish"] .tab::before { opacity: 0; }
+[data-theme="wish"] .tab[aria-current="page"]::before { opacity: 1; }
+[data-theme="wish"] .tab:not([aria-current="page"]) .icon-wish { opacity: 0.6; }
+[data-theme="wish"] .tab-label,
+[data-theme="iphone"] .tab-label { display: none; }
+[data-theme="wish"] .tab,
+[data-theme="iphone"] .tab { padding-top: 8px; padding-bottom: 8px; }
+
+/* 프로필 날개: 아주 작게, 사진에서 살짝 떨어뜨려 양옆에, 후광 */
+[data-theme="wish"] .me-row { padding-left: 26px; }
+[data-theme="wish"] .wish-angel { left: 26px; }
+[data-theme="wish"] .wish-angel .wing { filter: drop-shadow(0 0 3px rgba(142, 193, 236, 0.95)) drop-shadow(0 0 7px rgba(255, 255, 255, 0.95)); }
+[data-theme="wish"] .wish-angel .wing.l { left: -34px; top: 18px; transform: rotate(-14deg) scale(0.55); }
+[data-theme="wish"] .wish-angel .wing.r { left: 68px; top: 18px; transform: rotate(14deg) scale(0.55); }
+
+/* 배경 스티커: 뿌옇게 */
+.wish-deco .wd.dreamy { filter: blur(3px); opacity: 0.55; }
+.wish-deco .wd.soft { filter: blur(1.4px); opacity: 0.7; }
