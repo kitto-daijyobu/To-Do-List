@@ -3551,3 +3551,13 @@ body.no-progress .progress { display: none; }
 .day-header .day-title { grid-column: 1; grid-row: 1; margin: 0; }
 .day-header .day-actions { grid-column: 2; grid-row: 1; }
 .day-header .progress { grid-column: 1 / -1; margin-top: 12px; }
+/* 날짜 제목을 숨긴 테마(기본·시리얼): ✓ ☰ 버튼이 줄을 따로 차지하지 않게
+   진행 표시가 있으면 그 오른쪽에, 끄면 첫 카테고리 줄 오른쪽에 떠 있어요 */
+[data-theme="base"] .day-header,
+[data-theme="cereal"] .day-header { display: block; position: relative; min-height: 32px; margin-bottom: 14px; }
+[data-theme="base"] .day-header .day-actions,
+[data-theme="cereal"] .day-header .day-actions { position: absolute; right: 0; top: 0; z-index: 2; }
+[data-theme="base"] .day-header .progress,
+[data-theme="cereal"] .day-header .progress { margin-top: 0; min-height: 32px; padding-right: 84px; }
+body.no-progress[data-screen] [data-theme] .day-header { }html[data-theme="base"] body.no-progress .day-header,
+html[data-theme="cereal"] body.no-progress .day-header { min-height: 0; height: 0; margin-bottom: 0; }
