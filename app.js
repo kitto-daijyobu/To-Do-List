@@ -879,15 +879,13 @@ function renderSpaceMoon() {
   const f = moonPhaseOf(selectedDate);
   const name = PHASE_NAMES[Math.round(f * 8) % 8];
   // 북두칠성 (국자 4개 + 손잡이 3개)
-  // 두베 · 메라크 · 페크다 · 메그레즈(국자) → 알리오스 · 미자르 · 알카이드(손잡이)
-  const stars = [[4, 5], [6, 16], [17, 19], [19, 9], [29, 10], [37, 12], [46, 20]];
-  const lines = [0, 1, 2, 3, 0].map((i) => stars[i].join(',')).join(' ');
-  const handle = [3, 4, 5, 6].map((i) => stars[i].join(',')).join(' ');
+  // 북두칠성 (시안 그대로: 손잡이 3개 → 국자 4개)
+  const stars = [[2, 6, 1.5], [14, 4, 1.5], [25, 8, 1.6], [35, 13, 1.3], [55, 15, 1.9], [52, 28, 1.8], [37, 25, 1.5]];
   box.innerHTML =
-    `<svg class="dipper" viewBox="0 0 50 26"><g transform="rotate(-8 25 13)">` +
-    `<polyline points="${lines}"/><polyline points="${handle}"/>` +
-    stars.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.3"/>`).join('') +
-    `</g></svg>` +
+    `<svg class="dipper" width="62" height="34" viewBox="0 0 62 34">` +
+    `<polyline points="2,6 14,4 25,8 35,13 55,15 52,28 37,25 35,13"/>` +
+    stars.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join('') +
+    `</svg>` +
     `<svg class="moon" viewBox="0 0 66 66"><circle cx="33" cy="33" r="31" class="moon-dark"/>` +
     `<path d="${moonLitPath(f, 33, 33, 31)}" class="moon-lit"/></svg>` +
     `<span class="moon-name">${name}</span>`;
