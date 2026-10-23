@@ -225,6 +225,12 @@
         <li id="install-row" hidden><button id="install-app" class="settings-item" type="button">이 기기에 앱 설치</button></li>
         <li><button id="logout" class="settings-item danger" type="button">로그아웃</button></li>
       </ul>
+      <!-- 앱 버전: 지금 이 기기에서 돌아가는 버전 + 최신 버전인지 -->
+      <div class="app-version">
+        <p id="version-now"></p>
+        <p id="version-check" class="version-check">최신 버전 확인 중…</p>
+        <button id="version-reload" class="text-button" type="button" hidden>지금 새 버전으로 바꾸기</button>
+      </div>
     </div>
   </section>
 
