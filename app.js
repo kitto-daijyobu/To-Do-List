@@ -4300,38 +4300,8 @@ if (!isConfigured) {
 }
 
 // ===== 앱 버전 =====
-// 고칠 때마다 build 를 1 올려요. 세 곳을 같은 숫자로: 여기, version.json, sw.js 의 CACHE('mytodo-v숫자')
-// 개인정보 맨 아래에 '지금 이 기기의 버전'을 보여 주고, 인터넷의 version.json 과 비교해 최신인지 알려 줘요.
-const APP_VERSION = { version: '1.0.0', build: 28, date: '2026-10-23' };
-const $versionNow = document.getElementById('version-now');
-const $versionCheck = document.getElementById('version-check');
-const $versionReload = document.getElementById('version-reload');
-$versionNow.textContent = `버전 ${APP_VERSION.version} · ${APP_VERSION.build}번째 업데이트 (${APP_VERSION.date.replaceAll('-', '.')})`;
-async function checkVersion() {
-  try {
-    const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
-    const latest = await res.json();
-    if (latest.build > APP_VERSION.build) {
-      $versionCheck.textContent = `새 버전(${latest.build}번째)이 나왔어요`;
-      $versionCheck.classList.add('new');
-      $versionReload.hidden = false;
-    } else {
-      $versionCheck.textContent = '✓ 최신 버전이에요';
-      $versionCheck.classList.remove('new');
-      $versionReload.hidden = true;
-    }
-  } catch {
-    $versionCheck.textContent = '인터넷이 안 돼서 최신 버전인지 확인하지 못했어요';
-  }
-}
-// 새 버전으로: 저장해 둔 앱 파일을 지우고 다시 불러와요 (할 일 데이터는 그대로)
-$versionReload.addEventListener('click', async () => {
-  try {
-    const regs = await navigator.serviceWorker?.getRegistrations?.() || [];
-    await Promise.all(regs.map((r) => r.update().catch(() => {})));
-    if (window.caches) await Promise.all((await caches.keys()).map((k) => caches.delete(k)));
-  } catch { /* 괜찮아요 */ }
-  location.reload();
-});
-checkVersion();
-document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
+// 고칠 때마다 updated 를 고친 날짜·시각으로 바꿔요 (sw.js 의 CACHE 숫자도 1 올리기)
+// 개인정보 맨 아래에 보여서, 폰에 새 버전이 들어왔는지 이 시각으로 확인할 수 있어요.
+const APP_VERSION = { version: '1.0.0', updated: '2026-10-23 16:50' };
+document.getElementById('version-now').textContent =
+  `버전 ${APP_VERSION.version} · ${APP_VERSION.updated.replaceAll('-', '.')} 수정`;

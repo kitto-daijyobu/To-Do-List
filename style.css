@@ -3595,31 +3595,6 @@ html[data-theme="cereal"] body.no-progress .day-header { min-height: 0; height: 
 [data-theme="dark"] .tab:not([aria-current="page"]) { color: #5c5d64; }
 [data-theme="dark"] .tabbar { background: rgba(29, 30, 34, 0.94); }
 
-/* =====================================================================
-   위쪽 상태 표시줄(카메라섬) 줄 색 맞추기
-   아이폰 홈 화면 앱은 시계·배터리 뒤 줄을 html 바탕색 한 가지로 칠해요.
-   그래서 html 바탕은 '화면 맨 위 색'으로, 화면 바탕은 body 가 따로 칠해요.
-   ===================================================================== */
-html { background: var(--status-color, var(--bg)); }
-body { min-height: 100vh; min-height: 100dvh; }
-html[data-theme="cereal"] { --status-color: #2b5fb4; }   /* 위 파란 띠 */
-html[data-theme="iphone"] { --status-color: #b3c0d1; }   /* 유광 막대 맨 위 색 */
-html[data-theme="wish"] { background: #fde6ee; }          /* 분홍 그라데이션 맨 위 색 */
-html[data-theme="space"] { background: #0d1420; }
-/* 우주: 화면 맨 위는 상태 표시줄과 같은 밤색에서 시작해 아래로 부드럽게 밝아지게 */
-html[data-theme="space"]::before {
-  background:
-    linear-gradient(#0d1420 50vh, rgba(13, 20, 32, 0) calc(50vh + 160px)),
-    radial-gradient(circle at 85% 40%, #1d2c47 0, #0d1420 40%);
-}
-/* 위시: 그라데이션도 맨 위가 상태 표시줄 분홍과 이어지게 */
-html[data-theme="wish"]::before {
-  background:
-    radial-gradient(circle at 0% 61%, rgba(251, 211, 225, 0.6), transparent 22%),
-    radial-gradient(circle at 100% 68%, rgba(217, 237, 200, 0.75), transparent 22%),
-    linear-gradient(165deg, #fde6ee 35%, #fdfbfb 50%, #e3f2dc 75%);
-}
-
 /* ===== 시리얼 하단바: 위 막대와 비슷한 두께로 (후르츠링 위아래 여백 늘리기) ===== */
 [data-theme="cereal"] .tab { padding-top: 8px; padding-bottom: 6px; }
 
@@ -3635,53 +3610,6 @@ html[data-theme="wish"]::before {
 /* 위시: 할 일 입력칸도 할 일 목록과 같은 손글씨(SD미생)로 */
 [data-theme="wish"] .add-input { font-family: 'SDMiSaeng', 'Gowun Dodum', cursive; font-size: 21px !important; }
 
-/* =====================================================================
-   카메라섬 줄 (2차): 아이폰 홈 화면 앱은 윗줄을 'body 바탕색'으로 칠해요
-   (body 가 투명하면 html 바탕색). 그래서
-   - body 바탕색 = 윗줄에 보일 색 (--status-color)
-   - 실제 화면 바탕은 body 위에 깐 고정 층(body::before)이 칠해요
-   body 를 쌓임 맥락으로 만들어(z-index: 0) 바탕 층이 글·버튼 밑에 깔리게 해요.
-   ===================================================================== */
-html[data-theme] body {
-  position: relative;
-  z-index: 0;
-  background: var(--status-color, var(--bg));
-}
-body::before {
-  content: "";
-  position: fixed;
-  inset: -50vh 0;
-  z-index: -1;
-  pointer-events: none;
-  background-color: var(--bg);
-  background-image: var(--bg-image);
-}
-html[data-theme="wish"] { --status-color: #fde6ee; }
-html[data-theme="space"] { --status-color: #0d1420; }
-/* 우주·위시 그라데이션도 이 층으로 옮겨요 (html 쪽 층은 끄기) */
-html[data-theme="space"]::before,
-html[data-theme="wish"]::before { content: none; }
-[data-theme="wish"] body::before {
-  background:
-    radial-gradient(circle at 0% 61%, rgba(251, 211, 225, 0.6), transparent 22%),
-    radial-gradient(circle at 100% 68%, rgba(217, 237, 200, 0.75), transparent 22%),
-    linear-gradient(165deg, #fde6ee 35%, #fdfbfb 50%, #e3f2dc 75%);
-}
-/* 우주: 별 무늬 층(body::before)은 그대로 두고, 밤하늘 그라데이션은 그 밑 층(body::after)에 */
-[data-theme="space"] body::before { inset: 0; background-color: transparent; }
-[data-theme="space"] body::after {
-  content: "";
-  position: fixed;
-  inset: -50vh 0;
-  z-index: -2;
-  pointer-events: none;
-  background:
-    linear-gradient(#0d1420 50vh, rgba(13, 20, 32, 0) calc(50vh + 160px)),
-    radial-gradient(circle at 85% 40%, #1d2c47 0, #0d1420 40%);
-}
-
 /* 앱 버전 (개인정보 맨 아래) */
 .app-version { margin-top: 18px; text-align: center; font-size: 12.5px; color: var(--text-muted); }
 .app-version p { margin: 2px 0; }
-.version-check.new { color: var(--primary); font-weight: 700; }
-.app-version .text-button { margin-top: 6px; font-size: 13px; }
