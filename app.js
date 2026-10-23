@@ -4302,6 +4302,6 @@ if (!isConfigured) {
 // ===== 앱 버전 =====
 // 고칠 때마다 updated 를 고친 날짜·시각으로 바꿔요 (sw.js 의 CACHE 숫자도 1 올리기)
 // 개인정보 맨 아래에 보여서, 폰에 새 버전이 들어왔는지 이 시각으로 확인할 수 있어요.
-const APP_VERSION = { version: '1.0.0', updated: '2026-10-23 16:50' };
+const APP_VERSION = { version: '1.0.0', updated: '2026-10-23 17:38' };
 document.getElementById('version-now').textContent =
   `버전 ${APP_VERSION.version} · ${APP_VERSION.updated.replaceAll('-', '.')} 수정`;

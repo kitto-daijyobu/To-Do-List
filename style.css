@@ -3613,3 +3613,23 @@ html[data-theme="cereal"] body.no-progress .day-header { min-height: 0; height: 
 /* 앱 버전 (개인정보 맨 아래) */
 .app-version { margin-top: 18px; text-align: center; font-size: 12.5px; color: var(--text-muted); }
 .app-version p { margin: 2px 0; }
+
+/* =====================================================================
+   위시 · 우주: 위쪽 상태 표시줄(카메라섬) 줄과 배경 이어지게
+   아이폰 홈 화면 앱은 그 줄을 html 바탕색 한 가지로 칠해요 (body 가 투명할 때).
+   그래서 html 바탕을 화면 맨 위 색으로 맞추고, 그라데이션도 그 색에서 시작해요.
+   (시리얼 · 아이폰 테마는 일부러 건드리지 않아요)
+   ===================================================================== */
+html[data-theme="wish"] { background: #fde6ee; }
+html[data-theme="wish"]::before {
+  background:
+    radial-gradient(circle at 0% 61%, rgba(251, 211, 225, 0.6), transparent 22%),
+    radial-gradient(circle at 100% 68%, rgba(217, 237, 200, 0.75), transparent 22%),
+    linear-gradient(165deg, #fde6ee 35%, #fdfbfb 50%, #e3f2dc 75%);
+}
+html[data-theme="space"] { background: #0d1420; }
+html[data-theme="space"]::before {
+  background:
+    linear-gradient(#0d1420 50vh, rgba(13, 20, 32, 0) calc(50vh + 160px)),
+    radial-gradient(circle at 85% 40%, #1d2c47 0, #0d1420 40%);
+}
