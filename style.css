@@ -2472,7 +2472,7 @@ body {
 [data-theme="dark"] .settings-list,
 [data-theme="dark"] .profile-card,
 [data-theme="dark"] .study-card,
-[data-theme="dark"] .blk:not(.rest) { border: 1px solid var(--border); }
+[data-theme="dark"] .blk { border: 1px solid var(--border); }
 [data-theme="dark"] .cal-num { color: #d6d4cf; }
 /* 카테고리: 색 14% 투명 바탕 + 채도 낮춘 파스텔 글자, 체크 표시는 진하게 */
 [data-theme="dark"] .cat-section,
@@ -2663,7 +2663,7 @@ body {
 [data-theme="iphone"] .settings-list,
 [data-theme="iphone"] .profile-card,
 [data-theme="iphone"] .study-card,
-[data-theme="iphone"] .blk:not(.rest) { border: 1px solid #8e98a6; }
+[data-theme="iphone"] .blk { border: 1px solid #8e98a6; }
 
 /* 달력: 얇은 은색 유광 머리줄 */
 [data-theme="iphone"] .calendar { padding-top: 0; overflow: hidden; }
@@ -2801,7 +2801,7 @@ body {
 [data-theme="space"] .settings-list,
 [data-theme="space"] .profile-card,
 [data-theme="space"] .study-card,
-[data-theme="space"] .blk:not(.rest) { border: 1px solid var(--border); }
+[data-theme="space"] .blk { border: 1px solid var(--border); }
 [data-theme="space"] .cal-title { font-family: 'Space Mono', 'Noto Sans KR', monospace; font-weight: 400; font-size: 17px; }
 [data-theme="space"] .cal-num,
 [data-theme="space"] .progress-text { font-family: 'Space Mono', monospace; }
@@ -2979,7 +2979,7 @@ html[data-theme="cereal"] { overflow-x: clip; }
 [data-theme="cereal"] .settings-list,
 [data-theme="cereal"] .profile-card,
 [data-theme="cereal"] .study-card,
-[data-theme="cereal"] .blk:not(.rest) { border: 3px solid #1b2340; box-shadow: 6px 6px 0 #1b2340; }
+[data-theme="cereal"] .blk { border: 3px solid #1b2340; box-shadow: 6px 6px 0 #1b2340; }
 [data-theme="cereal"] .profile-photo.home-photo { border: 3px solid #1b2340; box-shadow: 4px 4px 0 #1b2340; background: #fffaf0; }
 [data-theme="cereal"] .sheet { border: 3px solid #1b2340; }
 
@@ -3587,7 +3587,7 @@ html[data-theme="cereal"] body.no-progress .day-header { min-height: 0; height: 
 [data-theme="dark"] .settings-list,
 [data-theme="dark"] .profile-card,
 [data-theme="dark"] .study-card,
-[data-theme="dark"] .blk:not(.rest) { border: none; }
+[data-theme="dark"] .blk { border: none; }
 [data-theme="dark"] .cat-section,
 [data-theme="dark"] .cat-section.soft-color { --cat-soft: #2a2b31; }
 [data-theme="dark"] .cat-plus { color: var(--text); background: #3a3b42; }
@@ -3633,3 +3633,34 @@ html[data-theme="space"]::before {
     linear-gradient(#0d1420 50vh, rgba(13, 20, 32, 0) calc(50vh + 160px)),
     radial-gradient(circle at 85% 40%, #1d2c47 0, #0d1420 40%);
 }
+
+/* =====================================================================
+   플래너: 휴식 · 식사 칸도 다른 일정과 같은 카드로, 지금 일정만 살짝 강조
+   - 휴식 칸: 같은 카드 · 같은 크기, 왼쪽 띠만 회색 + 제목 조금 연하게
+   - 지금 칸: 대표색 테두리 + 아주 옅은 대표색 바탕 + 꽉 찬 '지금' 배지
+   ===================================================================== */
+.planner-list .blk.rest {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  border-left-color: color-mix(in srgb, var(--text-muted) 40%, transparent);
+}
+.planner-list .blk.rest .blk-title { font-weight: 600; color: var(--text-2); }
+.planner-list .blk.rest .blk-dur { color: var(--text-muted); }
+[data-theme="cereal"] .planner-list .blk.rest { box-shadow: 6px 6px 0 #1b2340; }
+
+.planner-list .blk.now {
+  background: color-mix(in srgb, var(--primary) 9%, var(--surface));
+  box-shadow: 0 0 0 2px var(--primary), var(--shadow);
+}
+.planner-list .blk.now .blk-title { color: var(--text); }
+.planner-list .blk.now .now-badge { color: var(--on-primary); background: var(--primary); }
+/* 시리얼: 두꺼운 테두리는 그대로, 그림자만 빨강 + 노란 바탕 */
+[data-theme="cereal"] .planner-list .blk.now { background: #fff3c4; box-shadow: 6px 6px 0 #e2412b; }
+/* 지금 칸 테두리는 그림자 대신 outline 으로 (테마 그림자가 none 이면 그림자째 무시되던 문제) */
+.planner-list .blk.now { box-shadow: var(--shadow); outline: 2px solid var(--primary); outline-offset: 0; }
+[data-theme="cereal"] .planner-list .blk.now { outline: none; box-shadow: 6px 6px 0 #e2412b; }
+/* 다크: 테두리 없앤 규칙이 카테고리 색 띠까지 지우던 것 되돌리기 */
+[data-theme="dark"] .planner-list .blk { border-left: 4px solid var(--cat, transparent); }
+[data-theme="dark"] .planner-list .blk.rest { border-left-color: color-mix(in srgb, var(--text-muted) 40%, transparent); }
