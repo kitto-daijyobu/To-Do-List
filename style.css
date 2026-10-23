@@ -3631,3 +3631,6 @@ html[data-theme="wish"]::before {
   [data-theme="wish"] .tab,
   [data-theme="iphone"] .tab { padding-top: 7px; padding-bottom: 7px; }
 }
+
+/* 위시: 할 일 입력칸도 할 일 목록과 같은 손글씨(SD미생)로 */
+[data-theme="wish"] .add-input { font-family: 'SDMiSaeng', 'Gowun Dodum', cursive; font-size: 21px !important; }
