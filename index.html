@@ -24,10 +24,6 @@
       var t = localStorage.getItem('mytodo.theme') || 'base';
       if (t === 'auto') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'base';
       document.documentElement.dataset.theme = t;
-      // 어둡거나 색 있는 테마는 상태 표시줄(카메라섬) 밑까지 화면을 그려요 (아이폰 홈 화면 앱)
-      if (/^(cereal|iphone|dark|space)$/.test(t)) {
-        document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').setAttribute('content', 'black-translucent');
-      }
       // 테마 글꼴을 화면 그리기 전에 바로 받기 시작해요 (글씨가 나중에 바뀌며 밀리는 것 줄이기)
       var fonts = {
         space: 'family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono',

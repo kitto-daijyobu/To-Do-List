@@ -4023,9 +4023,6 @@ function applyTheme(id, { remember = true } = {}) {
   theme = resolveTheme(themeChoice);
   document.documentElement.dataset.theme = theme.id;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.statusColor);
-  // 상태 표시줄 모양 (아이폰 홈 화면 앱은 다음에 열 때부터 적용돼요)
-  document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
-    ?.setAttribute('content', ['cereal', 'iphone', 'dark', 'space'].includes(theme.id) ? 'black-translucent' : 'default');
   try { localStorage.setItem('mytodo.theme', themeChoice); } catch { /* 괜찮아요 */ }
   document.getElementById('theme-name').textContent = findTheme(themeChoice).name;
   loadThemeFonts();
