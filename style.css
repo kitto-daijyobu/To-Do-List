@@ -3664,3 +3664,11 @@ html[data-theme="space"]::before {
 /* 다크: 테두리 없앤 규칙이 카테고리 색 띠까지 지우던 것 되돌리기 */
 [data-theme="dark"] .planner-list .blk { border-left: 4px solid var(--cat, transparent); }
 [data-theme="dark"] .planner-list .blk.rest { border-left-color: color-mix(in srgb, var(--text-muted) 40%, transparent); }
+
+/* 시트 메뉴: 메뉴 이름은 한 줄로, 오른쪽 회색 설명이 길면 설명 쪽이 줄바꿈 */
+.sheet-action-label { white-space: nowrap; }
+.sheet-action-hint { min-width: 0; white-space: normal; text-align: right; }
+
+/* 플래너 '홈 할 일에서 불러오기': 다른 시간에 이미 넣은 할 일은 흐리게 + 작은 표시 */
+.cat-chip.linked-elsewhere { opacity: 0.55; }
+.link-group-label { flex-basis: 100%; margin: 6px 0 0; font-size: 12px; color: var(--text-muted); }

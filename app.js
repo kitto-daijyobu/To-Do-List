@@ -2248,11 +2248,22 @@ function renderBlockForm() {
   linkToggle.addEventListener('click', () => { blockLinking = !blockLinking; renderBlockForm(); });
   const linkArea = el('div', { className: 'chip-row' });
   if (blockLinking) {
+    // 이 일정에 이미 넣은 것과 홈에서 끝낸 것은 빼고,
+    // 고른 카테고리 것 먼저 → 나머지 → 같은 날 다른 시간에 이미 넣은 것(흐리게)은 맨 뒤
     const used = new Set(d.items.map((i) => i.todoId).filter(Boolean));
-    const candidates = dayTodosOf(parseDateKey(d.date)).filter((t) => !used.has(t.id));
+    const elsewhere = new Set(blocksOf(d.date).filter((b) => b.id !== d.id).flatMap((b) => b.items.map((i) => i.todoId)).filter(Boolean));
+    const open = dayTodosOf(parseDateKey(d.date)).filter((t) => !used.has(t.id) && !t.done);
+    const rank = (t) => (elsewhere.has(t.id) ? 2 : t.categoryId === d.categoryId ? 0 : 1);
+    const candidates = open.map((t, i) => [t, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(([t]) => t);
     if (!candidates.length) linkArea.append(el('p', { className: 'sheet-hint', textContent: '이 날 불러올 홈 할 일이 없어요.' }));
+    let labeled = false;
     for (const t of candidates) {
-      const chip = el('button', { type: 'button', className: 'cat-chip' }, [el('span', { className: 'cat-dot' }), t.title]);
+      const placed = elsewhere.has(t.id);
+      if (placed && !labeled) {
+        linkArea.append(el('p', { className: 'link-group-label', textContent: '다른 시간에 이미 넣은 할 일' }));
+        labeled = true;
+      }
+      const chip = el('button', { type: 'button', className: 'cat-chip' + (placed ? ' linked-elsewhere' : '') }, [el('span', { className: 'cat-dot' }), t.title]);
       chip.style.setProperty('--cat', categoryColor(t.categoryId));
       chip.addEventListener('click', () => {
         const todo = realize(t.id); // 루틴이면 그날 것을 진짜로 만들어 연결
@@ -4302,6 +4313,6 @@ if (!isConfigured) {
 // ===== 앱 버전 =====
 // 고칠 때마다 updated 를 고친 날짜·시각으로 바꿔요 (sw.js 의 CACHE 숫자도 1 올리기)
 // 개인정보 맨 아래에 보여서, 폰에 새 버전이 들어왔는지 이 시각으로 확인할 수 있어요.
-const APP_VERSION = { version: '1.0.0', updated: '2026-10-23 18:42' };
+const APP_VERSION = { version: '1.0.0', updated: '2026-10-27 01:14' };
 document.getElementById('version-now').textContent =
   `버전 ${APP_VERSION.version} · ${APP_VERSION.updated.replaceAll('-', '.')} 수정`;
