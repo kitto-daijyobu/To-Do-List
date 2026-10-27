@@ -1053,13 +1053,16 @@ function renderDay() {
   $dayTitle.textContent = formatTitle(selectedDate);
   renderProgress();
 
+  // 끝낸 할 일은 카테고리 맨 아래로 (체크를 풀면 원래 자리로 돌아가요)
+  const doneLast = (list) => [...list.filter((t) => !t.done), ...list.filter((t) => t.done)];
+
   // 선택하는 중에는 할 일을 새로 추가하지 않아요
   const sections = categories.map((cat) =>
-    renderSection(cat, dayTodos.filter((t) => t.categoryId === cat.id), !selecting && !viewing)
+    renderSection(cat, doneLast(dayTodos.filter((t) => t.categoryId === cat.id)), !selecting && !viewing)
   );
 
   // 지워진 카테고리에 있던 할 일
-  const orphans = dayTodos.filter((t) => !findCategory(t.categoryId));
+  const orphans = doneLast(dayTodos.filter((t) => !findCategory(t.categoryId)));
   if (orphans.length) {
     sections.push(renderSection({ id: null, name: '미분류', color: UNCATEGORIZED_COLOR }, orphans, false));
   }
@@ -4313,6 +4316,6 @@ if (!isConfigured) {
 // ===== 앱 버전 =====
 // 고칠 때마다 updated 를 고친 날짜·시각으로 바꿔요 (sw.js 의 CACHE 숫자도 1 올리기)
 // 개인정보 맨 아래에 보여서, 폰에 새 버전이 들어왔는지 이 시각으로 확인할 수 있어요.
-const APP_VERSION = { version: '1.2.1', updated: '2026-10-27 01:34' };
+const APP_VERSION = { version: '1.3.0', updated: '2026-10-27 22:44' };
 document.getElementById('version-now').textContent =
   `버전 ${APP_VERSION.version} · ${APP_VERSION.updated.replaceAll('-', '.')} 수정`;
