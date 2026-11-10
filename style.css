@@ -1598,6 +1598,25 @@ body[data-screen="app"][data-tab="timer"] #view-timer { display: block; }
   white-space: nowrap;
 }
 
+/* 보관함: 카테고리 이름 줄 */
+.archive-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 2px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cat);
+}
+.archive-group:first-child { margin-top: 4px; }
+.archive-group .cat-dot { flex-shrink: 0; }
+.archive-count {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.archive-item .routine-mark { flex-shrink: 0; }
+
 .archive-empty {
   margin: 20px 0 8px;
   text-align: center;
@@ -2291,6 +2310,15 @@ body { font-size: 15.5px; }
   }
 
   .sheet-head { touch-action: none; }
+
+  /* 키보드가 올라와 있으면 창을 키보드 바로 위에 붙이고, 보이는 높이 안에 들어오게 줄여요 */
+  body.typing .sheet,
+  body.typing .action-sheet {
+    margin-bottom: var(--kb, 0px);
+    max-height: calc(var(--vvh, 100dvh) - 12px);
+    padding-bottom: 14px;
+    overscroll-behavior: contain;
+  }
 
   .sheet[open] { animation: sheet-up 0.32s cubic-bezier(0.2, 0.9, 0.3, 1); }
   .sheet.closing { animation: sheet-down 0.22s ease-in forwards; }

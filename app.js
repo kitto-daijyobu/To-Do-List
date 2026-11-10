@@ -427,7 +427,7 @@ function virtualTodosFor(key) {
       categoryId: r.categoryId,
       done: false,
       doneAt: null,
-      order: 100000 + (r.order ?? 0),
+      order: r.order ?? 0,
     }));
 }
 
@@ -453,7 +453,7 @@ function realize(id) {
     routineId,
     routineDate: key,
     shared: !categoryHidden(r.categoryId),
-    order: nextOrder(key),
+    order: r.order ?? 0, // 루틴은 카테고리 맨 위 (끌어서 옮기기 전까지)
     createdAt: Date.now(),
   };
   todos.push(todo);
@@ -583,11 +583,18 @@ function archiveTodo(todo) {
   save(remote.updateTodo(todo.id, fields));
 }
 
+// 루틴에서 나온 할 일은 언제 만들었든 카테고리 맨 위에 와요.
+// 단, 그날 손으로 끌어서 순서를 바꾼 할 일(ordered)은 놓은 자리 그대로예요
+const ROUTINE_FIRST = 1e7;
+function orderKey(t) {
+  return t.routineId && !t.ordered ? (t.order ?? 0) - ROUTINE_FIRST : (t.order ?? 0);
+}
+
 // 고른 날짜의 할 일 (순서대로)
 function dayTodosOf(date) {
   const key = toDateKey(date);
   return [...activeTodos().filter((t) => t.date === key), ...virtualTodosFor(key)]
-    .sort((a, b) => a.order - b.order);
+    .sort((a, b) => orderKey(a) - orderKey(b));
 }
 
 // 미완료 할 일을 전부 다음 날로
@@ -1372,6 +1379,7 @@ function saveTodoOrder(li) {
       if (!todo) continue;
       const fields = {};
       if (todo.order !== order) fields.order = order;
+      if (todo.routineId && !todo.ordered) fields.ordered = true; // 이제부터는 놓은 자리 그대로
       if (catId && item === li && todo.categoryId !== catId) {
         fields.categoryId = catId;
         fields.shared = isShared({ ...todo, categoryId: catId }); // 숨긴 카테고리로 옮기면 친구에게도 숨겨져요
@@ -2836,32 +2844,46 @@ setInterval(() => {
 }, 250);
 
 // ===== 보관함 =====
+// 카테고리별로 나눠 보여 줘요 (카테고리 순서대로, 루틴에서 나온 할 일이 맨 위)
+// 넣어 둔 뒤 카테고리가 지워졌으면 맨 아래 '미분류'에 모아요
 function renderArchive() {
-  const items = todos
-    .filter((t) => t.archived && !t.deleted)
-    .sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
+  const items = todos.filter((t) => t.archived && !t.deleted);
+  const byOldest = (a, b) => (a.routineId ? 0 : 1) - (b.routineId ? 0 : 1) || (a.archivedAt || 0) - (b.archivedAt || 0);
 
-  $archiveList.replaceChildren(...items.map((todo) => {
-    const li = document.createElement('li');
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'archive-item';
-    button.style.setProperty('--cat', categoryColor(todo.categoryId));
-
-    const dot = document.createElement('span');
-    dot.className = 'cat-dot';
-    const title = document.createElement('span');
-    title.className = 'archive-title';
-    title.textContent = todo.title;
-    const from = document.createElement('span');
-    from.className = 'archive-from';
-    from.textContent = `${formatDateKey(todo.date)}에서`;
-
-    button.append(dot, title, from);
+  const row = (todo) => {
+    const button = el('button', { type: 'button', className: 'archive-item' }, [
+      el('span', { className: 'cat-dot' }),
+      el('span', { className: 'archive-title', textContent: todo.title }),
+    ]);
+    if (todo.routineId) {
+      const mark = el('span', { className: 'routine-mark' });
+      mark.innerHTML = sheetIcon('routine');
+      button.append(mark);
+    }
     button.addEventListener('click', () => openTodoSheet(todo.id));
-    li.append(button);
-    return li;
-  }));
+    return el('li', {}, [button]);
+  };
+
+  const group = (cat, list) => {
+    const head = el('li', { className: 'archive-group' }, [
+      el('span', { className: 'cat-dot' }),
+      el('span', { textContent: cat.name }),
+      el('span', { className: 'archive-count', textContent: list.length }),
+    ]);
+    head.style.setProperty('--cat', cat.id ? categoryColor(cat.id) : UNCATEGORIZED_COLOR);
+    const rows = list.sort(byOldest).map(row);
+    rows.forEach((li) => li.style.setProperty('--cat', cat.id ? categoryColor(cat.id) : UNCATEGORIZED_COLOR));
+    return [head, ...rows];
+  };
+
+  const groups = categories
+    .map((cat) => [cat, items.filter((t) => t.categoryId === cat.id)])
+    .filter(([, list]) => list.length)
+    .flatMap(([cat, list]) => group(cat, list));
+  const orphans = items.filter((t) => !findCategory(t.categoryId));
+  if (orphans.length) groups.push(...group({ id: null, name: '미분류' }, orphans));
+
+  $archiveList.replaceChildren(...groups);
   $archiveEmpty.hidden = items.length > 0;
 }
 
@@ -4148,12 +4170,38 @@ const syncTyping = () => {
   // 키보드가 내려간 뒤 아이폰이 화면을 밀어 올린 채로 두면 아래 고정 막대가 화면 밖에 남아요 → 제자리로
   if (was && !on) requestAnimationFrame(() => window.scrollTo(window.scrollX, window.scrollY));
 };
+// 키보드가 화면 아래를 얼마나 가리는지(--kb)와 보이는 높이(--vvh)를 CSS에 알려 줘요
+// → 아래에서 올라오는 창이 키보드 바로 위에 붙어서, 스크롤해도 입력칸이 키보드 뒤로 숨지 않아요
+const syncKeyboard = () => {
+  if (!vv) return;
+  const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+  const root = document.documentElement.style;
+  root.setProperty('--kb', `${kb > 80 ? kb : 0}px`);
+  root.setProperty('--vvh', `${Math.round(vv.height)}px`);
+};
+// 입력칸이 키보드에 가려져 있으면 보이는 곳으로 올려요 (키보드가 올라올 때만, 손으로 스크롤할 땐 안 건드려요)
+const revealField = () => {
+  const el = document.activeElement;
+  if (!vv || !isTypingField(el) || !el.getClientRects().length) return;
+  const r = el.getBoundingClientRect();
+  const top = vv.offsetTop;
+  const bottom = vv.offsetTop + vv.height;
+  if (r.bottom > bottom - 8 || r.top < top + 8) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+};
+let lastVVH = vv ? vv.height : 0;
+const onViewport = () => {
+  syncKeyboard();
+  syncTyping();
+  if (vv && vv.height < lastVVH - 80) setTimeout(revealField, 60); // 키보드가 방금 올라왔어요
+  if (vv) lastVVH = vv.height;
+};
 document.addEventListener('focusin', (e) => {
   if (isTypingField(e.target)) document.body.classList.add('typing');
-  setTimeout(syncTyping, 450); // 키보드가 다 올라온 뒤 한 번 더 확인
+  setTimeout(() => { syncKeyboard(); syncTyping(); revealField(); }, 450); // 키보드가 다 올라온 뒤 한 번 더 확인
 });
-document.addEventListener('focusout', () => setTimeout(syncTyping, 60));
-vv?.addEventListener('resize', syncTyping);
+document.addEventListener('focusout', () => setTimeout(() => { syncKeyboard(); syncTyping(); }, 60));
+vv?.addEventListener('resize', onViewport);
+vv?.addEventListener('scroll', syncKeyboard);
 document.addEventListener('close', () => setTimeout(syncTyping, 60), true); // 창(dialog)이 닫힐 때
 document.addEventListener('visibilitychange', syncTyping);
 
@@ -4316,6 +4364,6 @@ if (!isConfigured) {
 // ===== 앱 버전 =====
 // 고칠 때마다 updated 를 고친 날짜·시각으로 바꿔요 (sw.js 의 CACHE 숫자도 1 올리기)
 // 개인정보 맨 아래에 보여서, 폰에 새 버전이 들어왔는지 이 시각으로 확인할 수 있어요.
-const APP_VERSION = { version: '1.3.0', updated: '2026-10-27 22:44' };
+const APP_VERSION = { version: '1.4.0', updated: '2026-11-10 16:05' };
 document.getElementById('version-now').textContent =
   `버전 ${APP_VERSION.version} · ${APP_VERSION.updated.replaceAll('-', '.')} 수정`;
