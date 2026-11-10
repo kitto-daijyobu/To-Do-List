@@ -1599,22 +1599,37 @@ body[data-screen="app"][data-tab="timer"] #view-timer { display: block; }
 }
 
 /* 보관함: 카테고리 이름 줄 */
+/* 카테고리 이름은 옅은 색 띠, 그 아래 할 일은 왼쪽 색 선으로 묶어요 */
 .archive-group {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 14px 0 2px;
-  padding: 0 10px;
-  font-size: 13px;
+  margin: 18px 0 4px;
+  padding: 8px 12px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--cat);
+  background: color-mix(in srgb, var(--cat) 14%, transparent);
+  border-radius: 10px;
 }
-.archive-group:first-child { margin-top: 4px; }
-.archive-group .cat-dot { flex-shrink: 0; }
+.archive-group:first-child { margin-top: 0; }
+.archive-group .cat-dot { display: none; }
 .archive-count {
-  font-weight: 500;
-  color: var(--text-muted);
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.75;
 }
+.archive-group ~ li:not(.archive-group) {
+  margin-left: 14px;
+  border-left: 2px solid color-mix(in srgb, var(--cat) 45%, transparent);
+}
+.archive-group ~ li:not(.archive-group) .archive-item {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-radius: 0 10px 10px 0;
+}
+.archive-group ~ li:not(.archive-group) .cat-dot { display: none; }
 .archive-item .routine-mark { flex-shrink: 0; }
 
 .archive-empty {
