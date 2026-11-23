@@ -513,7 +513,8 @@ function toggleTodo(id) {
   setTimeout(() => { justChecked = null; }, 400);
   todo.done = !todo.done;
   todo.doneAt = todo.done ? Date.now() : null;
-  save(remote.updateTodo(id, { done: todo.done, doneAt: todo.doneAt }));
+  // 루틴 할 일은 realize에서 새 번호(todo.id)로 만들어지니, 꼭 그 번호로 저장해요
+  save(remote.updateTodo(todo.id, { done: todo.done, doneAt: todo.doneAt }));
   if (todo.done) notifyDone(todo);
   render();
 }
@@ -4364,6 +4365,6 @@ if (!isConfigured) {
 // ===== 앱 버전 =====
 // 고칠 때마다 updated 를 고친 날짜·시각으로 바꿔요 (sw.js 의 CACHE 숫자도 1 올리기)
 // 개인정보 맨 아래에 보여서, 폰에 새 버전이 들어왔는지 이 시각으로 확인할 수 있어요.
-const APP_VERSION = { version: '1.4.1', updated: '2026-11-10 16:24' };
+const APP_VERSION = { version: '1.4.2', updated: '2026-11-23 06:07' };
 document.getElementById('version-now').textContent =
   `버전 ${APP_VERSION.version} · ${APP_VERSION.updated.replaceAll('-', '.')} 수정`;
